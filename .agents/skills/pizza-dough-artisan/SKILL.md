@@ -26,11 +26,17 @@ Common commands:
 # Calculate for an exact fermentation duration (e.g. 48-hour cold ferment)
 /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough plan --recipe ny_style --hours 48 --balls 4
 
+# Calculate for Adam's Detroit Style Pan Pizza (13x9, 14x10, or 8x10 pan)
+/Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough plan --recipe adams_detroit --pan 13x9
+
+# Calculate for two 8x10 Detroit pans with 72-hour cold retard
+/Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough plan --recipe adams_detroit --pan 8x10 --balls 2 --hours 72
+
 # Quick 4-hour same-day dough for dinner tonight
 /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough quick --hours 4 --balls 3
 
 # Ask the agent in conversational English
-/Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough ask "I have 5 hours until dinner, make 3 pizzas"
+/Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough ask "For a 13 x 9 detroit style pizza pan: 350g bread flour, 260g water, 3g yeast, 10g salt, 20g olive oil"
 
 # List all available base recipes
 /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough recipe list

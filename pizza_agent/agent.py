@@ -7,7 +7,7 @@ Temperature calibration, proofing milestones, and natural language requests.
 from datetime import datetime, timedelta
 import re
 from typing import Optional, Dict, Any, Tuple
-from .models import Recipe, DoughPlan, IngredientBreakdown
+from .models import Recipe, DoughPlan, IngredientBreakdown, PAN_SIZES
 from .database import Database
 from .yeast_engine import (
     calculate_yeast_percentage,
@@ -115,6 +115,7 @@ class PizzaDoughAgent:
         recipe_id_or_name: str = "ny_style",
         balls: Optional[int] = None,
         ball_weight_g: Optional[float] = None,
+        pan_size: Optional[str] = None,
         ready_time_str: Optional[str] = None,
         duration_hours: Optional[float] = None,
         mix_time: Optional[datetime] = None,
@@ -127,11 +128,24 @@ class PizzaDoughAgent:
         knead_type: str = "hand",
     ) -> DoughPlan:
         """Calculates a complete custom dough plan with scaled yeast and step-by-step schedule."""
+        # 0. Handle Pan Sizing (13x9, 14x10, 8x10)
+        resolved_recipe_id = recipe_id_or_name
+        if pan_size:
+            pan_clean = pan_size.lower().replace(" ", "").replace("*", "x").replace("by", "x")
+            if pan_clean in PAN_SIZES:
+                pan_info = PAN_SIZES[pan_clean]
+                if ball_weight_g is None:
+                    ball_weight_g = pan_info["dough_weight_g"]
+                if balls is None:
+                    balls = 1
+                if resolved_recipe_id == "ny_style":
+                    resolved_recipe_id = "adams_detroit"
+
         # 1. Resolve Recipe
-        recipe = self.db.get_recipe(recipe_id_or_name)
+        recipe = self.db.get_recipe(resolved_recipe_id)
         if not recipe:
-            # Fallback to NY Style
-            recipe = self.db.get_recipe("ny_style")
+            # Fallback
+            recipe = self.db.get_recipe("adams_detroit") or self.db.get_recipe("ny_style")
             if not recipe:
                 recipe = Recipe(
                     id="custom",
@@ -149,6 +163,10 @@ class PizzaDoughAgent:
         # 2. Scale Dough Balls
         target_balls = balls if balls and balls > 0 else recipe.default_balls
         target_ball_weight = ball_weight_g if ball_weight_g and ball_weight_g > 0 else recipe.default_ball_weight
+
+        # Default Detroit pan pizza to 48-hour cold ferment if unspecified
+        if recipe.id == "adams_detroit" and duration_hours is None and not ready_time_str:
+            duration_hours = 48.0
 
         # 3. Resolve Timings
         mix_dt, ready_dt, total_hours = self.parse_time_target(
@@ -246,17 +264,24 @@ class PizzaDoughAgent:
         """Parses conversational user prompt and creates plan."""
         s = text.lower()
 
+        # Detect pan size (13x9, 14x10, 8x10)
+        pan_size = None
+        if re.search(r"13\s*(?:x|by|\*)\s*9", s):
+            pan_size = "13x9"
+        elif re.search(r"14\s*(?:x|by|\*)\s*10", s):
+            pan_size = "14x10"
+        elif re.search(r"8\s*(?:x|by|\*)\s*10", s):
+            pan_size = "8x10"
+
         # Detect recipe
         recipes = self.db.list_recipes()
         selected_recipe_id = "ny_style"
-        for r in recipes:
-            if r.id in s or r.name.lower() in s:
-                selected_recipe_id = r.id
-                break
-        if "neapolitan" in s or "napoli" in s:
+        if pan_size or "detroit" in s or "frico" in s or "in the pan" in s or "pan pizza" in s:
+            selected_recipe_id = "adams_detroit"
+        elif "neapolitan" in s or "napoli" in s:
             selected_recipe_id = "neapolitan"
-        elif "detroit" in s or "pan" in s or "frico" in s:
-            selected_recipe_id = "detroit"
+        elif "outdoor" in s or "ooni" in s or "roccbox" in s:
+            selected_recipe_id = "adams_outdoor_base"
         elif "quick" in s or "express" in s or "fast" in s or "today" in s or "tonight" in s:
             if "hours" in s and any(h in s for h in ["2 hour", "3 hour", "4 hour", "5 hour"]):
                 selected_recipe_id = "same_day_quick"
@@ -264,20 +289,31 @@ class PizzaDoughAgent:
             selected_recipe_id = "sourdough_artisan"
         elif "pinsa" in s or "taglio" in s or "roman" in s:
             selected_recipe_id = "roman_pinsa"
+        else:
+            for r in recipes:
+                if r.id in s or r.name.lower() in s:
+                    selected_recipe_id = r.id
+                    break
 
-        # Detect dough ball count
+        # Detect dough ball / pan count (ignoring pan dimensions like 13x9 or 14x10)
+        s_clean = re.sub(r"\b\d+\s*(?:x|by|\*)\s*\d+\b", "", s)
         balls = None
-        ball_match = re.search(r"(\d+)\s+(?:[\w-]+\s+){0,3}(?:dough\s+)?(?:balls?|pizzas?|pies?|portions?)", s)
+        ball_match = re.search(r"(\d+)\s+(?:[\w-]+\s+){0,3}(?:dough\s+)?(?:balls?|pizzas?|pies?|portions?|pans?)", s_clean)
         if ball_match:
             balls = int(ball_match.group(1))
+        elif pan_size or selected_recipe_id == "adams_detroit":
+            balls = 1
 
-        # Detect ball weight
+        # Detect ball weight or pan weight
         ball_weight = None
-        weight_match = re.search(r"(\d+)\s*(?:g|grams?|gram)\b", s)
-        if weight_match:
-            val = float(weight_match.group(1))
-            if 150 <= val <= 600:
-                ball_weight = val
+        if pan_size and pan_size in PAN_SIZES:
+            ball_weight = PAN_SIZES[pan_size]["dough_weight_g"]
+        else:
+            weight_match = re.search(r"(\d+)\s*(?:g|grams?|gram)\b", s)
+            if weight_match:
+                val = float(weight_match.group(1))
+                if 150 <= val <= 900:
+                    ball_weight = val
 
         # Detect yeast type
         yeast_type = "IDY"
@@ -289,9 +325,13 @@ class PizzaDoughAgent:
             yeast_type = "SOURDOUGH"
 
         # Detect time phrase
-        # E.g. "tomorrow at 6pm", "in 5 hours", "friday 7pm", "tonight"
+        # E.g. "tomorrow at 6pm", "in 5 hours", "friday 7pm", "tonight", "2 day", "3 day"
         time_phrase = None
-        if "tomorrow" in s:
+        if "3 day" in s or "3-day" in s or "72 hour" in s or "72h" in s:
+            time_phrase = "72 hours"
+        elif "2 day" in s or "2-day" in s or "48 hour" in s or "48h" in s:
+            time_phrase = "48 hours"
+        elif "tomorrow" in s:
             time_phrase = "tomorrow"
             tm = re.search(r"tomorrow\s*(?:at\s*)?(\d{1,2}(?::\d{2})?\s*(?:am|pm)?)?", s)
             if tm and tm.group(1):
@@ -310,6 +350,7 @@ class PizzaDoughAgent:
             recipe_id_or_name=selected_recipe_id,
             balls=balls,
             ball_weight_g=ball_weight,
+            pan_size=pan_size,
             ready_time_str=time_phrase,
             yeast_type=yeast_type,
         )

@@ -24,13 +24,17 @@ An intelligent, master-pizzaiolo-grade agent and pizza dough management platform
      - **Sugar / Diastatic Malt %**
      - **Target Ball Weight & Count**
      - **Flour Recommendations & Oven Targets**
-   - Pre-loaded with 6 master styles:
+   - Pre-loaded with master styles and Adam's signature formulas:
+     - 🧀 `Adam's Detroit Style Pan Pizza` (74.3% hydration, 2.86% salt, 5.71% olive oil, 2-3 day in-pan cold ferment)
+     - 🔥 `Adam's High-Heat Outdoor Dough` (62.0% hydration, 1.5% salt, 0% oil, 0% sugar for 900°F ovens)
      - 🗽 `Classic New York Style` (65% hydration, 2.3% salt, 2.0% oil, 1.5% sugar)
      - 🇮🇹 `Neapolitan Vera Pizza (AVPN)` (62% hydration, 2.8% salt, 0% oil, 0% sugar)
-     - 🧀 `Detroit Style Pan Pizza` (73% hydration, 2.2% salt, 2.5% oil, 1.0% sugar)
      - ⚡ `Same-Day Express (3-5 Hours)` (64% hydration, 2.2% salt, 2.0% oil, 1.5% sugar)
      - 🌾 `Artisan Naturally Leavened Sourdough` (66% hydration, 2.4% salt, 1.5% oil)
      - 🍕 `Roman Pizza al Taglio / Pinsa` (78% hydration, 2.5% salt, 3.0% oil)
+   - **Detroit & Sicilian Pan Sizing Support**:
+     - Automatic area-scaled calculations for **13" × 9"** (643g dough / 350g flour), **14" × 10"** (770g dough / 419g flour), and **8" × 10"** (440g dough / 239g flour) pans.
+     - Pan-specific proofing roadmap: in-pan cold fermentation (48–72h), room temp 4-corner dimpling proof (3–4h), lowest rack oven preheat, and caramelized frico cheese crown baking instructions.
 
 3. **Desired Dough Temperature (DDT) Water Calibration**:
    - Calculates exact water temperature needed:
@@ -79,12 +83,24 @@ cd /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent
 ./dough plan --recipe ny_style --hours 48 --balls 4
 ```
 
-### 4. Fast Same-Day Express Dough (Dinner in 4 Hours)
+### 4. Plan Adam's Detroit Style Pan Pizza (13x9, 14x10, or 8x10)
+```bash
+# Standard 13" x 9" Detroit Pan (643g dough / 350g flour)
+./dough plan --recipe adams_detroit --pan 13x9
+
+# Large 14" x 10" Detroit Pan (770g dough / 419g flour)
+./dough plan --recipe adams_detroit --pan 14x10 --hours 72
+
+# Two Small 8" x 10" Detroit Pans (440g dough / 239g flour each)
+./dough plan --recipe adams_detroit --pan 8x10 --balls 2
+```
+
+### 5. Fast Same-Day Express Dough (Dinner in 4 Hours)
 ```bash
 ./dough quick --hours 4 --balls 3
 ```
 
-### 5. Add Your Own Base Recipe
+### 6. Add Your Own Base Recipe
 ```bash
 ./dough recipe add \
   --id my_crust \
@@ -102,18 +118,20 @@ cd /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent
   --notes "Cold ferment 48 hours. Let warm up 3 hours before stretching."
 ```
 
-### 6. Ask the Agent in Natural Conversational English
+### 7. Ask the Agent in Natural Conversational English
 ```bash
+./dough ask "For a 13 x 9 detroit style pizza pan: 350g bread flour, 260g water, 3g yeast, 10g salt, 20g olive oil"
+./dough ask "I want two 8x10 detroit pan pizzas for 3 days from now"
 ./dough ask "I want 4 Neapolitan dough balls of 250g each for tomorrow night at 7pm"
 ./dough ask "I have 5 hours until dinner, make 3 pizzas with instant dry yeast"
 ```
 
-### 7. Launch the Interactive Web Dashboard
+### 8. Launch the Interactive Web Dashboard
 ```bash
-./dough serve --port 8080
+./dough serve --port 8001
 ```
 *Or double-click `start_dashboard.command` in Finder!*
-Then open [http://localhost:8080](http://localhost:8080) in your browser.
+Then open [http://localhost:8001](http://localhost:8001) in your browser.
 
 ---
 

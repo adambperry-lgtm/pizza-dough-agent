@@ -44,11 +44,33 @@
           <div id="recipe-desc" class="recipe-description-badge"></div>
         </div>
 
+        <!-- Detroit Pan Size Selector (Visible for pan styles) -->
+        <div id="pan-size-group" class="form-group" style="display: none; margin-top: 0.75rem;">
+          <div class="label-row">
+            <label>Detroit Pizza Pan Size</label>
+            <span id="pan-spec-badge" class="pill-badge" style="background: rgba(245, 158, 11, 0.2); color: #fbbf24; border: 1px solid rgba(245, 158, 11, 0.4);">13" × 9" (643g dough)</span>
+          </div>
+          <div class="presets-grid pan-presets-grid" style="grid-template-columns: repeat(3, 1fr);">
+            <button type="button" class="pan-size-btn active" data-pan="13x9" data-weight="643">
+              <strong>13" × 9"</strong>
+              <small>Standard (643g)</small>
+            </button>
+            <button type="button" class="pan-size-btn" data-pan="14x10" data-weight="770">
+              <strong>14" × 10"</strong>
+              <small>Large (770g)</small>
+            </button>
+            <button type="button" class="pan-size-btn" data-pan="8x10" data-weight="440">
+              <strong>8" × 10"</strong>
+              <small>Small (440g)</small>
+            </button>
+          </div>
+        </div>
+
         <!-- Dough Scale Controls -->
         <div class="controls-row">
           <div class="form-group half-width">
             <div class="label-row">
-              <label for="balls-input">Dough Balls</label>
+              <label for="balls-input" id="balls-label">Dough Balls / Pans</label>
               <span id="balls-val" class="pill-badge">4</span>
             </div>
             <input type="range" id="balls-slider" min="1" max="12" value="4" class="slider">
@@ -56,10 +78,10 @@
 
           <div class="form-group half-width">
             <div class="label-row">
-              <label for="weight-input">Ball Weight</label>
+              <label for="weight-input" id="weight-label">Weight per Pan / Ball</label>
               <span id="weight-val" class="pill-badge">260 g</span>
             </div>
-            <input type="range" id="weight-slider" min="180" max="520" step="5" value="260" class="slider">
+            <input type="range" id="weight-slider" min="180" max="850" step="5" value="260" class="slider">
           </div>
         </div>
 

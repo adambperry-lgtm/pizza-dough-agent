@@ -117,6 +117,87 @@ class TestPizzaDoughAgent(unittest.TestCase):
         self.assertEqual(plan.ingredients.ball_weight_g, 250.0)
         self.assertGreater(len(plan.schedule), 5)
 
+    def test_detroit_recipe_exact_ingredients_13x9(self):
+        recipe = self.db.get_recipe("adams_detroit")
+        self.assertIsNotNone(recipe)
+        self.assertEqual(recipe.name, "Adam's Detroit Style Pan Pizza")
+        self.assertAlmostEqual(recipe.hydration_pct, 74.3, places=1)
+        self.assertAlmostEqual(recipe.salt_pct, 2.86, places=2)
+        self.assertAlmostEqual(recipe.oil_pct, 5.71, places=2)
+
+        # Plan for 13x9 pan
+        plan = self.agent.create_plan(
+            recipe_id_or_name="adams_detroit",
+            pan_size="13x9",
+            duration_hours=48.0,
+        )
+        self.assertEqual(plan.ingredients.balls, 1)
+        self.assertAlmostEqual(plan.ingredients.ball_weight_g, 643.0, places=0)
+        self.assertAlmostEqual(plan.ingredients.flour_g, 350.0, delta=2.0)
+        self.assertAlmostEqual(plan.ingredients.water_g, 260.0, delta=2.0)
+        self.assertAlmostEqual(plan.ingredients.salt_g, 10.0, delta=1.0)
+        self.assertAlmostEqual(plan.ingredients.oil_g, 20.0, delta=1.0)
+
+    def test_detroit_pan_scaling_14x10_and_8x10(self):
+        # 14x10 Pan
+        plan_large = self.agent.create_plan(
+            recipe_id_or_name="adams_detroit",
+            pan_size="14x10",
+            duration_hours=48.0,
+        )
+        self.assertEqual(plan_large.ingredients.ball_weight_g, 770.0)
+        self.assertAlmostEqual(plan_large.ingredients.flour_g, 419.0, delta=2.0)
+        self.assertAlmostEqual(plan_large.ingredients.water_g, 311.0, delta=2.0)
+
+        # 8x10 Pan
+        plan_small = self.agent.create_plan(
+            recipe_id_or_name="adams_detroit",
+            pan_size="8x10",
+            duration_hours=72.0,
+        )
+        self.assertEqual(plan_small.ingredients.ball_weight_g, 440.0)
+        self.assertAlmostEqual(plan_small.ingredients.flour_g, 239.0, delta=2.0)
+        self.assertAlmostEqual(plan_small.ingredients.water_g, 178.0, delta=2.0)
+
+    def test_detroit_in_pan_schedule_milestones(self):
+        plan = self.agent.create_plan(
+            recipe_id_or_name="adams_detroit",
+            pan_size="13x9",
+            duration_hours=48.0,
+        )
+        milestone_titles = [m.title for m in plan.schedule]
+        
+        # Verify Detroit specific steps
+        self.assertTrue(any("Pan Setup" in t or "Pan Oiling" in t for t in milestone_titles))
+        self.assertTrue(any("In-Pan Cold Fermentation" in t for t in milestone_titles))
+        self.assertTrue(any("Final Pan Proof" in t for t in milestone_titles))
+        self.assertTrue(any("Lowest Rack Setup" in t for t in milestone_titles))
+        self.assertTrue(any("Edge-to-Edge Cheese" in t or "Pan Bake" in t for t in milestone_titles))
+
+        # Check instruction contains frico crown guidance
+        bake_step = next(m for m in plan.schedule if m.action_category == "bake")
+        self.assertIn("frico", bake_step.instruction.lower())
+        self.assertIn("racing stripes", bake_step.instruction.lower())
+
+    def test_detroit_natural_language_parsing(self):
+        # Exact prompt matching user's request
+        plan = self.agent.parse_natural_language_request(
+            "For a 13 x 9 detroit style pizza pan: 350g bread flour, 260g water, 3g yeast, 10g salt, 20g olive oil"
+        )
+        self.assertEqual(plan.recipe.id, "adams_detroit")
+        self.assertEqual(plan.ingredients.balls, 1)
+        self.assertEqual(plan.ingredients.ball_weight_g, 643.0)
+
+        # Pan size with multiple pans
+        plan_multi = self.agent.parse_natural_language_request(
+            "I want 2 8x10 detroit pizzas for 3 days from now"
+        )
+        self.assertEqual(plan_multi.recipe.id, "adams_detroit")
+        self.assertEqual(plan_multi.ingredients.balls, 2)
+        self.assertEqual(plan_multi.ingredients.ball_weight_g, 440.0)
+        self.assertAlmostEqual(plan_multi.total_hours, 72.0, places=0)
+
 
 if __name__ == "__main__":
     unittest.main()
+

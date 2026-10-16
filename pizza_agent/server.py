@@ -8,7 +8,7 @@ import os
 from pathlib import Path
 from typing import Optional
 from .agent import PizzaDoughAgent
-from .models import Recipe
+from .models import Recipe, PAN_SIZES
 
 WEB_DIR = Path(__file__).resolve().parent.parent / "web"
 
@@ -30,6 +30,14 @@ class PizzaRequestHandler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
             recipes = [r.to_dict() for r in self.agent.db.list_recipes()]
             self.wfile.write(json.dumps(recipes).encode("utf-8"))
+            return
+
+        elif path == "/api/pans":
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+            self.wfile.write(json.dumps(PAN_SIZES).encode("utf-8"))
             return
 
         elif path.startswith("/api/recipes/"):
@@ -82,8 +90,9 @@ class PizzaRequestHandler(http.server.SimpleHTTPRequestHandler):
         if path == "/api/calculate":
             try:
                 recipe_id = payload.get("recipe_id", "ny_style")
-                balls = int(payload.get("balls", 4))
-                ball_weight = float(payload.get("ball_weight_g", 260.0))
+                pan = payload.get("pan")
+                balls = int(payload.get("balls", 4)) if payload.get("balls") is not None else None
+                ball_weight = float(payload.get("ball_weight_g", 260.0)) if payload.get("ball_weight_g") is not None else None
                 hours = float(payload.get("hours")) if payload.get("hours") is not None else None
                 ready_str = payload.get("ready_time_str")
                 ferment_type = payload.get("ferment_type", "AUTO")
@@ -95,6 +104,7 @@ class PizzaRequestHandler(http.server.SimpleHTTPRequestHandler):
                     recipe_id_or_name=recipe_id,
                     balls=balls,
                     ball_weight_g=ball_weight,
+                    pan_size=pan,
                     ready_time_str=ready_str,
                     duration_hours=hours,
                     ferment_type=ferment_type,

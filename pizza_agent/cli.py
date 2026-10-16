@@ -107,6 +107,7 @@ def main():
     p_plan.add_argument("-y", "--yeast", default="IDY", choices=["IDY", "ADY", "CY", "SOURDOUGH"], help="Yeast type")
     p_plan.add_argument("--room-temp", type=float, default=70.0, help="Room temperature in °F (default 70°F)")
     p_plan.add_argument("--fridge-temp", type=float, default=38.0, help="Fridge temperature in °F (default 38°F)")
+    p_plan.add_argument("--pan", choices=["13x9", "14x10", "8x10"], default=None, help="Detroit pizza pan size (13x9, 14x10, or 8x10)")
     p_plan.add_argument("--ferment", default="AUTO", choices=["AUTO", "CF", "RT"], help="Fermentation profile")
     p_plan.add_argument("--json", action="store_true", help="Output result as JSON")
 
@@ -174,6 +175,7 @@ def main():
             recipe_id_or_name=args.recipe,
             balls=args.balls,
             ball_weight_g=args.weight,
+            pan_size=args.pan,
             ready_time_str=args.ready,
             duration_hours=args.hours,
             ferment_type=args.ferment,

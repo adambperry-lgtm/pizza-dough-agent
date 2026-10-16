@@ -134,6 +134,24 @@ SEED_RECIPES = [
         recommended_ferment="CF",
         notes="00 flour with 62% hydration, 1.5% salt, 0% oil, 0% sugar. Designed for intense 850-950°F stone temperatures.",
         is_custom=True
+    ),
+    Recipe(
+        id="adams_detroit",
+        name="Adam's Detroit Style Pan Pizza",
+        description="Authentic Detroit pan pizza: 74.3% hydration, 2.86% salt, 5.71% EVOO. 2-3 day in-pan cold ferment for 13x9, 14x10, or 8x10 pans.",
+        flour_type="Bread Flour (e.g. King Arthur Bread Flour)",
+        hydration_pct=74.3,
+        salt_pct=2.86,
+        oil_pct=5.71,
+        sugar_pct=0.0,
+        default_ball_weight=643.0,
+        default_balls=1,
+        oven_type="Home Oven (475-500°F in Detroit Blue Steel or LloydPan)",
+        bake_temp_f=485,
+        bake_time_min="14-16 minutes",
+        recommended_ferment="CF",
+        notes="Calibrated for Detroit pans: 13x9 (643g dough / 350g flour), 14x10 (770g dough / 420g flour), and 8x10 (440g dough / 240g flour). Cold ferment 48-72h (2-3 days) directly in the well-oiled pan. Bring to room temp 3-4 hours before baking, dimpling to corners, top cheese edge-to-edge for crispy frico crust.",
+        is_custom=True
     )
 ]
 

@@ -5,6 +5,53 @@ from datetime import datetime
 from typing import List, Optional, Dict, Any
 
 
+# Standard Pan Sizing for Detroit / Sicilian Pan Styles
+PAN_SIZES = {
+    "13x9": {
+        "id": "13x9",
+        "name": '13" × 9" Pan (Standard Detroit)',
+        "length_in": 13.0,
+        "width_in": 9.0,
+        "area_sq_in": 117.0,
+        "dough_weight_g": 643.0,  # 350g flour, 260g water, 10g salt, 20g oil, 3g yeast
+        "flour_g": 350.0,
+        "water_g": 260.0,
+        "salt_g": 10.0,
+        "oil_g": 20.0,
+        "yeast_g": 3.0,
+        "yeast_pct": 0.857,
+    },
+    "14x10": {
+        "id": "14x10",
+        "name": '14" × 10" Pan (Large Detroit)',
+        "length_in": 14.0,
+        "width_in": 10.0,
+        "area_sq_in": 140.0,
+        "dough_weight_g": 770.0,  # 140/117 * 643 = ~769.4g
+        "flour_g": 419.0,
+        "water_g": 311.0,
+        "salt_g": 12.0,
+        "oil_g": 24.0,
+        "yeast_g": 3.6,
+        "yeast_pct": 0.857,
+    },
+    "8x10": {
+        "id": "8x10",
+        "name": '8" × 10" Pan (Small / Half Detroit)',
+        "length_in": 10.0,
+        "width_in": 8.0,
+        "area_sq_in": 80.0,
+        "dough_weight_g": 440.0,  # 80/117 * 643 = ~439.7g
+        "flour_g": 239.0,
+        "water_g": 178.0,
+        "salt_g": 6.8,
+        "oil_g": 13.7,
+        "yeast_g": 2.1,
+        "yeast_pct": 0.857,
+    },
+}
+
+
 @dataclass
 class Recipe:
     id: str

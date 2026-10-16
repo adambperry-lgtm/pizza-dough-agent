@@ -6,6 +6,23 @@
 // Default Built-in Master Recipes
 const DEFAULT_RECIPES = [
   {
+    id: "adams_detroit",
+    name: "Adam's Detroit Style Pan Pizza",
+    description: "Authentic Detroit pan pizza: 74.3% hydration, 2.86% salt, 5.71% EVOO. 2-3 day in-pan cold ferment for 13x9, 14x10, or 8x10 pans.",
+    flour_type: "Bread Flour (e.g. King Arthur Bread Flour)",
+    hydration_pct: 74.3,
+    salt_pct: 2.86,
+    oil_pct: 5.71,
+    sugar_pct: 0.0,
+    default_ball_weight: 643.0,
+    default_balls: 1,
+    oven_type: "Home Oven (475-500°F in Detroit Blue Steel or LloydPan)",
+    bake_temp_f: 485,
+    bake_time_min: "14-16 minutes",
+    recommended_ferment: "CF",
+    is_custom: true
+  },
+  {
     id: "adams_outdoor_base",
     name: "Adam's High-Heat Outdoor Dough",
     description: "00 flour with 62% hydration, 1.5% salt, 0% oil, 0% sugar. Designed for intense 850-950°F stone temperatures.",
@@ -130,6 +147,13 @@ let recipesState = [];
 let currentPlan = null;
 let currentFermentMode = "AUTO";
 
+const PAN_SIZES = {
+  "13x9": { name: '13" × 9" Pan (Standard)', dough_weight_g: 643.0, flour_g: 350.0 },
+  "14x10": { name: '14" × 10" Pan (Large)', dough_weight_g: 770.0, flour_g: 419.0 },
+  "8x10": { name: '8" × 10" Pan (Small / Half)', dough_weight_g: 440.0, flour_g: 239.0 }
+};
+let selectedPanSize = "13x9";
+
 const actionIcons = {
   mix: "🥣",
   knead: "🌀",
@@ -193,6 +217,24 @@ function setupEventListeners() {
     debounceRecalculate();
   });
 
+  // Pan Size Preset Buttons
+  document.querySelectorAll(".pan-size-btn").forEach(btn => {
+    btn.addEventListener("click", () => {
+      document.querySelectorAll(".pan-size-btn").forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      selectedPanSize = btn.dataset.pan;
+      const weight = parseFloat(btn.dataset.weight);
+      weightSlider.value = weight;
+      weightVal.textContent = `${weight} g`;
+      const spec = PAN_SIZES[selectedPanSize];
+      const badge = document.getElementById("pan-spec-badge");
+      if (badge && spec) {
+        badge.textContent = `${spec.name.split(' (')[0]} (${spec.dough_weight_g}g dough)`;
+      }
+      triggerRecalculate();
+    });
+  });
+
   hoursInput.addEventListener("input", () => {
     updateActivePreset();
     debounceRecalculate();
@@ -200,12 +242,41 @@ function setupEventListeners() {
 
   recipeSelect.addEventListener("change", (e) => {
     const selected = recipesState.find(r => r.id === e.target.value);
+    const panGroup = document.getElementById("pan-size-group");
+    const ballsLabel = document.getElementById("balls-label");
+    const weightLabel = document.getElementById("weight-label");
+
     if (selected) {
       recipeDesc.textContent = `${selected.description} • Flour: ${selected.flour_type}`;
-      ballsSlider.value = selected.default_balls || 4;
-      ballsVal.textContent = ballsSlider.value;
-      weightSlider.value = selected.default_ball_weight || 260;
-      weightVal.textContent = `${weightSlider.value} g`;
+      const isPan = (selected.id === "adams_detroit" || selected.id === "detroit" || selected.name.toLowerCase().includes("detroit") || selected.name.toLowerCase().includes("pan"));
+
+      if (isPan) {
+        if (panGroup) panGroup.style.display = "block";
+        if (ballsLabel) ballsLabel.textContent = "Detroit Pans (Count)";
+        if (weightLabel) weightLabel.textContent = "Weight per Pan";
+        ballsSlider.value = selected.default_balls || 1;
+        ballsVal.textContent = ballsSlider.value;
+        weightSlider.value = selected.default_ball_weight || 643;
+        weightVal.textContent = `${weightSlider.value} g`;
+
+        // Default to 48 hours cold ferment preset for Detroit style
+        hoursInput.value = 48;
+        document.querySelectorAll(".preset-btn").forEach(b => {
+          b.classList.toggle("active", b.dataset.hours === "48");
+        });
+        document.querySelectorAll(".segment-btn").forEach(b => {
+          b.classList.toggle("active", b.dataset.mode === "CF");
+        });
+        currentFermentMode = "CF";
+      } else {
+        if (panGroup) panGroup.style.display = "none";
+        if (ballsLabel) ballsLabel.textContent = "Dough Balls";
+        if (weightLabel) weightLabel.textContent = "Ball Weight";
+        ballsSlider.value = selected.default_balls || 4;
+        ballsVal.textContent = ballsSlider.value;
+        weightSlider.value = selected.default_ball_weight || 260;
+        weightVal.textContent = `${weightSlider.value} g`;
+      }
     }
     triggerRecalculate();
   });
@@ -333,6 +404,7 @@ async function triggerRecalculate() {
   const recipe = recipesState.find(r => r.id === recipeSelect.value) || recipesState[0];
   const payload = {
     recipe_id: recipe.id,
+    pan: selectedPanSize,
     balls: parseInt(ballsSlider.value, 10),
     ball_weight_g: parseFloat(weightSlider.value),
     hours: parseFloat(hoursInput.value),
@@ -452,17 +524,21 @@ function clientSideCalculate(recipe, params) {
   const schedule = [];
   let step = 1;
 
+  const isPanStyle = (recipe.id === "adams_detroit" || recipe.id === "detroit" || (recipe.name && recipe.name.toLowerCase().includes("detroit")) || (recipe.name && recipe.name.toLowerCase().includes("pan")));
+
   // Step 1: Mise en Place
   schedule.push({
     step_num: step++,
-    title: "Mise en Place & Water Temp Calibration",
+    title: isPanStyle ? "Mise en Place, Water Prep & Detroit Pan Setup" : "Mise en Place & Water Temp Calibration",
     action_category: "mix",
     display_time: formatDate(tStart),
     duration_str: "10-15 mins",
     temp_desc: `Target Water: ${waterTemp}°F`,
-    instruction: `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, and ${yeastG.toFixed(2)}g ${yeastType} (${formatTeaspoon(yeastTsp)}).\n2. Bring water to ${waterTemp}°F using the DDT formula.`,
-    visual_cue: "Ingredients precisely scaled on a digital gram scale.",
-    pro_tip: "Precision gram scales avoid up to 25% volumetric error from cup measuring."
+    instruction: isPanStyle
+      ? `1. Weigh ${flourG.toFixed(1)}g bread flour, ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g salt, ${yeastG.toFixed(2)}g ${yeastType}, and ${oilG.toFixed(1)}g EVOO.\n2. Calibrate water to ${waterTemp}°F.\n3. Coat your Detroit style pan(s) (13x9, 14x10, or 8x10) generously with 1-2 tbsp olive oil across bottom and sides.`
+      : `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, and ${yeastG.toFixed(2)}g ${yeastType} (${formatTeaspoon(yeastTsp)}).\n2. Bring water to ${waterTemp}°F using the DDT formula.`,
+    visual_cue: isPanStyle ? "Ingredients scaled; Detroit pan thoroughly coated in olive oil." : "Ingredients precisely scaled on a digital gram scale.",
+    pro_tip: isPanStyle ? "Olive oil in the blue steel pan is what fries the bottom crust to golden crispness!" : "Precision gram scales avoid up to 25% volumetric error from cup measuring."
   });
 
   // Step 2: Autolyse & Knead
@@ -500,23 +576,25 @@ function clientSideCalculate(recipe, params) {
       pro_tip: "Do not let dough double during bulk if you plan to cold ferment!"
     });
 
-    // Step 4: Divide and Ball
+    // Step 4: Divide and Ball / Pan Placement
     const tBall = tBulkEnd;
     const tBallDone = new Date(tBall.getTime() + 15 * 60 * 1000);
     schedule.push({
       step_num: step++,
-      title: `Divide & Shape into ${balls} Ball${balls > 1 ? 's' : ''} (${ballWeight}g each)`,
+      title: isPanStyle ? `Portion Directly into ${balls} Oiled Detroit Pan${balls > 1 ? 's' : ''} (${ballWeight}g each)` : `Divide & Shape into ${balls} Ball${balls > 1 ? 's' : ''} (${ballWeight}g each)`,
       action_category: "ball",
       display_time: formatDate(tBall),
       duration_str: "15 mins",
-      temp_desc: "Room Temp Bench",
-      instruction: `Portion into ${balls} pieces of ${ballWeight}g. Cup hand and roll tightly on counter to create taut surface tension. Pinch bottom seam shut.`,
-      visual_cue: "Taut, smooth spheres with tightly sealed bases.",
-      pro_tip: "Surface tension traps CO₂ inside the dough for high, puffy cornicione rims!"
+      temp_desc: isPanStyle ? "Room Temp Pan Setup" : "Room Temp Bench",
+      instruction: isPanStyle
+        ? `1. Cut dough into ${balls} portion${balls > 1 ? 's' : ''} (${ballWeight}g each).\n2. Place dough mass directly into center of oiled Detroit pan; turn once to oil both sides.\n3. Gently dimple and spread outward toward corners with flat fingertips (it will shrink back—do not force it).`
+        : `Portion into ${balls} pieces of ${ballWeight}g. Cup hand and roll tightly on counter to create taut surface tension. Pinch bottom seam shut.`,
+      visual_cue: isPanStyle ? "Dough rests in oiled pan, lightly coated in olive oil." : "Taut, smooth spheres with tightly sealed bases.",
+      pro_tip: isPanStyle ? "Never force cold/unrelaxed dough to corners; time and cold fermentation will relax it naturally." : "Surface tension traps CO₂ inside the dough for high, puffy cornicione rims!"
     });
 
     // Step 5: Cold Retardation
-    let temperHours = Math.min(3.5, Math.max(1.5, rtHours * 0.65));
+    let temperHours = isPanStyle ? Math.min(4.0, Math.max(2.5, rtHours * 0.70)) : Math.min(3.5, Math.max(1.5, rtHours * 0.65));
     let tTemperStart = new Date(ready.getTime() - temperHours * 3600 * 1000);
     if (tTemperStart.getTime() < tBallDone.getTime() + 3600 * 1000) {
       tTemperStart = new Date(tBallDone.getTime() + Math.max(0.5, (availHours - bulkHours - 0.25) * 0.5) * 3600 * 1000);
@@ -528,27 +606,31 @@ function clientSideCalculate(recipe, params) {
 
     schedule.push({
       step_num: step++,
-      title: `Cold Retardation / Refrigerator Maturation (${actualCfHours.toFixed(1)}h)`,
+      title: isPanStyle ? `In-Pan Cold Fermentation (${actualCfHours.toFixed(1)}h / 2-3 Days)` : `Cold Retardation / Refrigerator Maturation (${actualCfHours.toFixed(1)}h)`,
       action_category: "cold_retard",
       display_time: formatDate(tCfStart),
       duration_str: `${actualCfHours.toFixed(1)} hours`,
-      temp_desc: `Fridge ~${fridgeTemp}°F (Covered)`,
-      instruction: `Transfer sealed dough containers to refrigerator for ${actualCfHours.toFixed(1)} hours. Slow enzyme action develops deep complex flavor and micro-blisters.`,
-      visual_cue: "Dough relaxes outward; delicate micro-blistering appears on the skin.",
-      pro_tip: "Cold fermentation builds the authentic airy crumb and charred leopard spotting!"
+      temp_desc: `Fridge ~${fridgeTemp}°F (Covered Pan)`,
+      instruction: isPanStyle
+        ? `Cover Detroit pan tightly with plastic wrap or LloydPan lid. Chill in refrigerator at ~${fridgeTemp}°F for ${actualCfHours.toFixed(1)}h (2-3 days). Flavor and extensible gluten develop in the pan.`
+        : `Transfer sealed dough containers to refrigerator for ${actualCfHours.toFixed(1)} hours. Slow enzyme action develops deep complex flavor and micro-blisters.`,
+      visual_cue: isPanStyle ? "Dough relaxes and creeps outward across pan bottom with micro-bubbles." : "Dough relaxes outward; delicate micro-blistering appears on the skin.",
+      pro_tip: isPanStyle ? "2-3 days cold ferment in the pan creates incredible sourdough-like flavor and airy focaccia crumb." : "Cold fermentation builds the authentic airy crumb and charred leopard spotting!"
     });
 
     // Step 6: Tempering
     schedule.push({
       step_num: step++,
-      title: "Room Temperature Tempering & Poke Test",
+      title: isPanStyle ? `Room Temperature Temper & Final Pan Proof (${temperHours.toFixed(1)}h)` : "Room Temperature Tempering & Poke Test",
       action_category: "temper",
       display_time: formatDate(tTemperStart),
       duration_str: `${temperHours.toFixed(1)} hours`,
       temp_desc: `Room Temp ~${roomTemp}°F (Airtight)`,
-      instruction: `Remove from fridge ${temperHours.toFixed(1)} hours before bake. Keep airtight! Internal temp must reach 60-65°F before stretching.`,
-      visual_cue: "Dough feels soft and pillowy; fingertip poke springs back slowly.",
-      pro_tip: "NEVER stretch cold dough! Cold gluten resists, snaps back, and produces dense gum-lines."
+      instruction: isPanStyle
+        ? `1. Remove covered pan from fridge ${temperHours.toFixed(1)}h before bake.\n2. After 1 hour, use oiled fingertips to gently dimple dough into all 4 corners.\n3. Let rise covered until puffy and halfway up the sides (~1 to 1.5" deep).`
+        : `Remove from fridge ${temperHours.toFixed(1)} hours before bake. Keep airtight! Internal temp must reach 60-65°F before stretching.`,
+      visual_cue: isPanStyle ? "Dough completely fills pan to all 4 corners, jiggly and buoyant with air pockets." : "Dough feels soft and pillowy; fingertip poke springs back slowly.",
+      pro_tip: isPanStyle ? "Handle gently during final proof to protect the delicate honeycomb air bubbles!" : "NEVER stretch cold dough! Cold gluten resists, snaps back, and produces dense gum-lines."
     });
 
     tPreheat = new Date(ready.getTime() - 45 * 60 * 1000);
@@ -582,13 +664,15 @@ function clientSideCalculate(recipe, params) {
     const tBallDone = new Date(tBall.getTime() + 15 * 60 * 1000);
     schedule.push({
       step_num: step++,
-      title: `Divide & Shape into ${balls} Ball${balls > 1 ? 's' : ''} (${ballWeight}g each)`,
+      title: isPanStyle ? `Portion Directly into ${balls} Oiled Detroit Pan${balls > 1 ? 's' : ''} (${ballWeight}g each)` : `Divide & Shape into ${balls} Ball${balls > 1 ? 's' : ''} (${ballWeight}g each)`,
       action_category: "ball",
       display_time: formatDate(tBall),
       duration_str: "15 mins",
-      temp_desc: "Room Temp Bench",
-      instruction: `Portion into ${balls} pieces of ${ballWeight}g. Cup hand and roll tightly on counter to create taut surface tension. Pinch bottom seam shut.`,
-      visual_cue: "Taut, smooth spheres with tightly sealed bases.",
+      temp_desc: isPanStyle ? "Room Temp Pan Setup" : "Room Temp Bench",
+      instruction: isPanStyle
+        ? `Portion into ${balls} pans of ${ballWeight}g. Lightly coat in olive oil and dimple outward.`
+        : `Portion into ${balls} pieces of ${ballWeight}g. Cup hand and roll tightly on counter to create taut surface tension. Pinch bottom seam shut.`,
+      visual_cue: isPanStyle ? "Dough portioned in pan with olive oil." : "Taut, smooth spheres with tightly sealed bases.",
       pro_tip: "Surface tension traps CO₂ inside the dough for high, puffy cornicione rims!"
     });
 
@@ -596,7 +680,7 @@ function clientSideCalculate(recipe, params) {
     const tBallProofStart = tBallDone;
     schedule.push({
       step_num: step++,
-      title: `Room Temperature Ball Proof (${ballProofHours.toFixed(1)} hours)`,
+      title: isPanStyle ? `Room Temperature Pan Proof (${ballProofHours.toFixed(1)} hours)` : `Room Temperature Ball Proof (${ballProofHours.toFixed(1)} hours)`,
       action_category: "temper",
       display_time: formatDate(tBallProofStart),
       duration_str: `${ballProofHours.toFixed(1)} hours`,
@@ -616,27 +700,31 @@ function clientSideCalculate(recipe, params) {
   // Preheat
   schedule.push({
     step_num: step++,
-    title: `Preheat ${recipe.oven_type} to ${recipe.bake_temp_f}°F`,
+    title: isPanStyle ? `Preheat Oven to ${recipe.bake_temp_f}°F (Lowest Rack Setup)` : `Preheat ${recipe.oven_type} to ${recipe.bake_temp_f}°F`,
     action_category: "preheat",
     display_time: formatDate(tPreheat),
     duration_str: `${preheatMins} mins`,
-    temp_desc: `${recipe.bake_temp_f}°F High Heat`,
-    instruction: `Preheat oven. Ensure stone floor reaches 800-850°F (outdoor) or saturate baking steel at 550°F for at least ${preheatMins} minutes.`,
+    temp_desc: `${recipe.bake_temp_f}°F Bottom Heat`,
+    instruction: isPanStyle
+      ? `Preheat oven to ${recipe.bake_temp_f}°F with pizza stone/steel on the LOWEST rack. Setting Detroit pan directly on steel fries the bottom crust in olive oil.`
+      : `Preheat oven. Ensure stone floor reaches 800-850°F (outdoor) or saturate baking steel at 550°F for at least ${preheatMins} minutes.`,
     visual_cue: "Baking surface is screaming hot and fully heat-saturated.",
-    pro_tip: "Verify floor temp with an infrared laser thermometer before launching."
+    pro_tip: isPanStyle ? "Bottom rack placement ensures crispy bottom without burning cheese." : "Verify floor temp with an infrared laser thermometer before launching."
   });
 
   // Bake
   schedule.push({
     step_num: step++,
-    title: `Stretch, Top & Bake (${recipe.bake_time_min})`,
+    title: isPanStyle ? `Edge-to-Edge Cheese & Pan Bake (${recipe.bake_time_min})` : `Stretch, Top & Bake (${recipe.bake_time_min})`,
     action_category: "bake",
     display_time: formatDate(ready),
     duration_str: recipe.bake_time_min,
     temp_desc: `${recipe.bake_temp_f}°F`,
-    instruction: `1. Invert container gently onto a bed of semola rimacinata.\n2. Push air outward with fingertips into the rim.\n3. Stretch on knuckles to 12-14", top lightly, launch, and bake ${recipe.bake_time_min}!`,
-    visual_cue: "Puffy, charred leopard spots and melted bubbly cheese.",
-    pro_tip: "Less is more on toppings! Heavy toppings cause soggy centers."
+    instruction: isPanStyle
+      ? `1. Top generously with Wisconsin brick cheese or whole milk mozzarella edge-to-edge, pressing cheese against pan sides.\n2. Bake ${recipe.bake_time_min} until caramelized frico cheese crown forms.\n3. Ladle warm sauce in 2 racing stripes, release with spatula, and slice!`
+      : `1. Invert container gently onto a bed of semola rimacinata.\n2. Push air outward with fingertips into the rim.\n3. Stretch on knuckles to 12-14", top lightly, launch, and bake ${recipe.bake_time_min}!`,
+    visual_cue: isPanStyle ? "Crisp mahogany frico cheese crown along all 4 edges; airy crumb." : "Puffy, charred leopard spots and melted bubbly cheese.",
+    pro_tip: isPanStyle ? "Cheese against metal edge melts down side to form the iconic caramelized frico crust!" : "Less is more on toppings! Heavy toppings cause soggy centers."
   });
 
   return {
