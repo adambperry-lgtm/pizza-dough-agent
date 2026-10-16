@@ -176,20 +176,43 @@ python3 -m unittest discover -s tests -p "test_*.py"
 
 ---
 
-## 🚂 Deploy to Railway
+---
 
-This repository is pre-configured for instant zero-configuration deployment on [Railway](https://railway.app):
+## 🌐 Public URL Hosting Options
+
+You can host and access the Pizza Dough Artisan Agent from any phone, tablet, or computer via two public URL methods:
+
+### Option A: Free Public URL on GitHub Pages (Instant Client-Side Web App)
+
+Because the web application includes a 100% self-contained JavaScript calculation engine, the dashboard can be hosted completely free on **GitHub Pages** with zero backend infrastructure required!
+
+#### How to Enable GitHub Pages in 3 Clicks:
+1. Go to your GitHub repository: [github.com/adambperry-lgtm/pizza-dough-agent](https://github.com/adambperry-lgtm/pizza-dough-agent)
+2. Click **Settings** ⚙️ → **Pages** (in the left sidebar).
+3. Under **Build and deployment**:
+   - **Source**: Select **"Deploy from a branch"**
+   - **Branch**: Select `main` and folder `/docs` (or choose **"GitHub Actions"** to use the pre-built `.github/workflows/pages.yml`).
+   - Click **Save**.
+4. Within 60 seconds, GitHub publishes your live public URL:
+   👉 **`https://adambperry-lgtm.github.io/pizza-dough-agent/`**
+5. Bookmark this URL on your phone or tablet to plan pizza dough from anywhere! All calculations, custom recipes (stored in browser `localStorage`), Detroit pan scaling, Freezable dough workflows, and kitchen print sheets work 100% in the browser.
+
+---
+
+### Option B: Full-Stack Public URL on Railway (Python Server + API + SQLite)
+
+This repository is pre-configured for instant deployment on [Railway](https://railway.app):
 - **`railway.json`**: Configures Nixpacks builder, healthchecks (`/api/status`), and restart policy.
 - **`Procfile`**: Declares the web worker (`web: python3 -m pizza_agent.server`).
 - **`Dockerfile`**: Container definition ready if you prefer the Docker engine.
 - **Dynamic Port Binding**: Automatically binds to `$PORT` assigned by Railway or default `8001`.
 
-### Instant Deployment Steps:
+#### Instant Deployment Steps:
 1. Navigate to your [Railway Dashboard](https://railway.app/dashboard).
 2. Click **"+ New Project"** → **"Deploy from GitHub repo"**.
 3. Select **`adambperry-lgtm/pizza-dough-agent`**.
 4. Click **Deploy Now**. Railway builds and provisions the app automatically.
 5. In your Railway project service view:
    - Go to **Settings** → **Networking** → Click **"Generate Domain"** (e.g. `pizza-dough-agent-production.up.railway.app`).
-   - Open your generated domain to access your live Pizza Dough Artisan dashboard from anywhere on phone, tablet, or desktop!
+   - Open your generated domain to access your live Pizza Dough Artisan dashboard backed by the full Python server and database!
 

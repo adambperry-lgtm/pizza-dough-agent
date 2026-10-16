@@ -163,6 +163,7 @@ const DEFAULT_RECIPES = [
 let recipesState = [];
 let currentPlan = null;
 let currentFermentMode = "AUTO";
+const isStaticHost = window.location.hostname.endsWith("github.io") || window.location.protocol === "file:";
 
 const PAN_SIZES = {
   "13x9": { name: '13" × 9" Pan (Standard)', dough_weight_g: 643.0, flour_g: 350.0 },
@@ -368,7 +369,7 @@ function debounceRecalculate() {
 
 async function loadRecipes() {
   let fetched = null;
-  if (window.location.protocol.startsWith("http")) {
+  if (!isStaticHost && window.location.protocol.startsWith("http")) {
     try {
       const res = await fetch("/api/recipes");
       if (res.ok) fetched = await res.json();
@@ -431,8 +432,8 @@ async function triggerRecalculate() {
     fridge_temp_f: parseFloat(fridgeTempSlider.value),
   };
 
-  // Try API first if on HTTP
-  if (window.location.protocol.startsWith("http")) {
+  // Try API first if on HTTP and not on static host (e.g. GitHub Pages)
+  if (!isStaticHost && window.location.protocol.startsWith("http")) {
     try {
       const res = await fetch("/api/calculate", {
         method: "POST",
@@ -1031,7 +1032,7 @@ async function handleSaveRecipe(e) {
   };
 
   // Try API first
-  if (window.location.protocol.startsWith("http")) {
+  if (!isStaticHost && window.location.protocol.startsWith("http")) {
     try {
       const res = await fetch("/api/recipes", {
         method: "POST",
@@ -1066,7 +1067,7 @@ async function handleDeleteRecipe() {
   const id = document.getElementById("rec-id").value;
   if (!confirm(`Are you sure you want to delete custom recipe '${id}'?`)) return;
 
-  if (window.location.protocol.startsWith("http")) {
+  if (!isStaticHost && window.location.protocol.startsWith("http")) {
     try {
       const res = await fetch(`/api/recipes/${id}`, { method: "DELETE" });
       if (res.ok) {
