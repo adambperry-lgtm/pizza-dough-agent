@@ -40,6 +40,23 @@ const DEFAULT_RECIPES = [
     is_custom: true
   },
   {
+    id: "adams_freezable",
+    name: "Adam's Freezable Home Oven Dough",
+    description: "Freeze-ahead dough for regular oven: 200g flour, 124g water (62%), 6g olive oil (3%), 4g sugar (2%), 4g salt (2%), 2.5g yeast (1.25%). Flash-freeze after balling; store up to 3 months.",
+    flour_type: "Bread Flour or All-Purpose Flour",
+    hydration_pct: 62.0,
+    salt_pct: 2.0,
+    oil_pct: 3.0,
+    sugar_pct: 2.0,
+    default_ball_weight: 340.5,
+    default_balls: 4,
+    oven_type: "Regular Home Oven (475-525°F on Pizza Stone / Steel / Baking Sheet)",
+    bake_temp_f: 500,
+    bake_time_min: "7-10 minutes",
+    recommended_ferment: "FREEZE",
+    is_custom: true
+  },
+  {
     id: "ny_style",
     name: "Classic New York Style",
     description: "Authentic NYC pizzeria slice: crispy bottom, chewy foldable rim, golden leopard blisters.",
@@ -478,7 +495,9 @@ function clientSideCalculate(recipe, params) {
   // Craig's Regression
   const ratios = { IDY: 1.0, ADY: 1.33, CY: 3.0, SOURDOUGH: 20.0 };
   let yeastPct = 0.035;
-  if (yeastType === "SOURDOUGH") {
+  if (recipe.id === "adams_freezable" || (recipe.name && recipe.name.toLowerCase().includes("freez"))) {
+    yeastPct = 1.25;
+  } else if (yeastType === "SOURDOUGH") {
     yeastPct = Math.max(4, Math.min(25, 25 * Math.pow(equivHours, -0.45)));
   } else {
     const baseIDY = Math.max(0.015, Math.min(1.4, 2.42 * Math.pow(equivHours, -1.35)));
@@ -525,20 +544,23 @@ function clientSideCalculate(recipe, params) {
   let step = 1;
 
   const isPanStyle = (recipe.id === "adams_detroit" || recipe.id === "detroit" || (recipe.name && recipe.name.toLowerCase().includes("detroit")) || (recipe.name && recipe.name.toLowerCase().includes("pan")));
+  const isFreezable = (recipe.id === "adams_freezable" || (recipe.name && recipe.name.toLowerCase().includes("freez")));
 
   // Step 1: Mise en Place
   schedule.push({
     step_num: step++,
-    title: isPanStyle ? "Mise en Place, Water Prep & Detroit Pan Setup" : "Mise en Place & Water Temp Calibration",
+    title: isFreezable ? "Mise en Place & Water Prep (Lukewarm ~85°F)" : (isPanStyle ? "Mise en Place, Water Prep & Detroit Pan Setup" : "Mise en Place & Water Temp Calibration"),
     action_category: "mix",
     display_time: formatDate(tStart),
     duration_str: "10-15 mins",
     temp_desc: `Target Water: ${waterTemp}°F`,
-    instruction: isPanStyle
-      ? `1. Weigh ${flourG.toFixed(1)}g bread flour, ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g salt, ${yeastG.toFixed(2)}g ${yeastType}, and ${oilG.toFixed(1)}g EVOO.\n2. Calibrate water to ${waterTemp}°F.\n3. Coat your Detroit style pan(s) (13x9, 14x10, or 8x10) generously with 1-2 tbsp olive oil across bottom and sides.`
-      : `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, and ${yeastG.toFixed(2)}g ${yeastType} (${formatTeaspoon(yeastTsp)}).\n2. Bring water to ${waterTemp}°F using the DDT formula.`,
-    visual_cue: isPanStyle ? "Ingredients scaled; Detroit pan thoroughly coated in olive oil." : "Ingredients precisely scaled on a digital gram scale.",
-    pro_tip: isPanStyle ? "Olive oil in the blue steel pan is what fries the bottom crust to golden crispness!" : "Precision gram scales avoid up to 25% volumetric error from cup measuring."
+    instruction: isFreezable
+      ? `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, ${sugarG.toFixed(1)}g sugar, ${oilG.toFixed(1)}g EVOO, and ${yeastG.toFixed(2)}g ${yeastType}.\n2. Calibrate water to ~80-85°F. Whisk sugar and yeast into warm water to jumpstart hydration.`
+      : (isPanStyle
+        ? `1. Weigh ${flourG.toFixed(1)}g bread flour, ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g salt, ${yeastG.toFixed(2)}g ${yeastType}, and ${oilG.toFixed(1)}g EVOO.\n2. Calibrate water to ${waterTemp}°F.\n3. Coat your Detroit style pan(s) (13x9, 14x10, or 8x10) generously with 1-2 tbsp olive oil across bottom and sides.`
+        : `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, and ${yeastG.toFixed(2)}g ${yeastType} (${formatTeaspoon(yeastTsp)}).\n2. Bring water to ${waterTemp}°F using the DDT formula.`),
+    visual_cue: isFreezable ? "Yeast and sugar dissolved in warm water; ingredients scaled." : (isPanStyle ? "Ingredients scaled; Detroit pan thoroughly coated in olive oil." : "Ingredients precisely scaled on a digital gram scale."),
+    pro_tip: isFreezable ? "Olive oil protects gluten cell walls against freezing damage; sugar promotes golden browning in 500°F home ovens!" : (isPanStyle ? "Olive oil in the blue steel pan is what fries the bottom crust to golden crispness!" : "Precision gram scales avoid up to 25% volumetric error from cup measuring.")
   });
 
   // Step 2: Autolyse & Knead
@@ -549,15 +571,101 @@ function clientSideCalculate(recipe, params) {
     display_time: formatDate(tAutolyse),
     duration_str: "20 mins",
     temp_desc: `Room Temp ~${roomTemp}°F`,
-    instruction: `1. Mix flour and water into a rough mass; rest 15 min (Autolyse).\n2. Add salt, knead 6-8 mins until satiny and passes windowpane test.`,
+    instruction: isFreezable
+      ? `1. Combine flour and yeast/sugar water. Let rest covered for 15 min (Autolyse).\n2. Add ${saltG.toFixed(1)}g salt and ${oilG.toFixed(1)}g olive oil.\n3. Knead vigorously for 7-9 minutes until smooth, satiny, and passes the windowpane test.`
+      : `1. Mix flour and water into a rough mass; rest 15 min (Autolyse).\n2. Add salt, knead 6-8 mins until satiny and passes windowpane test.`,
     visual_cue: "Dough becomes silky smooth and stretches translucent without tearing.",
-    pro_tip: "Autolyse allows flour proteins to hydrate naturally before mechanical stress."
+    pro_tip: isFreezable ? "Developing a full windowpane before freezing is critical so thawed dough has high elasticity and won't tear." : "Autolyse allows flour proteins to hydrate naturally before mechanical stress."
   });
 
   let tPreheat = null;
   let preheatMins = 45;
 
-  if (cfHours > 0 && availHours >= 6.0) {
+  if (isFreezable) {
+    // FREEZING & THAWING PROCESS
+    const tRest = tKneadDone;
+    const tRestDone = new Date(tRest.getTime() + 15 * 60 * 1000);
+    schedule.push({
+      step_num: step++,
+      title: `Bench Rest & Divide into ${balls} Portion${balls > 1 ? 's' : ''} (${ballWeight}g each)`,
+      action_category: "ball",
+      display_time: formatDate(tRest),
+      duration_str: "15 mins",
+      temp_desc: `Room Temp ~${roomTemp}°F`,
+      instruction: `1. Cover dough mass with a damp towel or inverted bowl and rest 10-15 minutes on counter.\n2. Cut into ${balls} equal pieces using a bench scraper, each weighing ${ballWeight}g.`,
+      visual_cue: "Relaxed dough cuts cleanly with bench scraper.",
+      pro_tip: "A brief bench rest relaxes gluten for effortless portioning and rounding."
+    });
+
+    const tBall = tRestDone;
+    const tBallDone = new Date(tBall.getTime() + 15 * 60 * 1000);
+    schedule.push({
+      step_num: step++,
+      title: `Shape into ${balls} Taut, Smooth Dough Ball${balls > 1 ? 's' : ''}`,
+      action_category: "ball",
+      display_time: formatDate(tBall),
+      duration_str: "15 mins",
+      temp_desc: "Room Temp Bench",
+      instruction: `1. Cup hand over each portion and rotate firmly against counter to form taut, smooth spherical balls.\n2. Pinch bottom seam shut.\n3. Rub each ball with a light film of olive oil on all sides.`,
+      visual_cue: "Smooth, tight spheres with glossy surface and sealed bottom seams.",
+      pro_tip: "Surface tension holds shape and prevents dough from flattening out in the freezer."
+    });
+
+    const tFreezeStart = tBallDone;
+    const tFreezeDone = new Date(tFreezeStart.getTime() + 2.5 * 3600 * 1000);
+    schedule.push({
+      step_num: step++,
+      title: "Flash Freeze on Baking Sheet (2-3 Hours @ 0°F)",
+      action_category: "freeze",
+      display_time: formatDate(tFreezeStart),
+      duration_str: "2-3 hours",
+      temp_desc: "Freezer ~0°F (Parchment Tray)",
+      instruction: `1. Line a rimmed baking sheet with parchment paper.\n2. Arrange oiled dough balls spaced 2-3 inches apart.\n3. Place sheet uncovered in freezer at ~0°F for 2 to 3 hours until dough balls freeze solid to the core.`,
+      visual_cue: "Dough balls are rock solid to the touch and hold shape completely when lifted.",
+      pro_tip: "Flash freezing individually ensures balls will NEVER stick together when bagged together!"
+    });
+
+    const tBag = tFreezeDone;
+    schedule.push({
+      step_num: step++,
+      title: "Airtight Storage in Freezer Bags (Up to 3 Months @ 0°F)",
+      action_category: "freeze",
+      display_time: formatDate(tBag),
+      duration_str: "Up to 3 months",
+      temp_desc: "Deep Freezer 0°F (Airtight Bags)",
+      instruction: `1. Transfer frozen balls into heavy-duty Ziploc freezer bags or individual vacuum-seal bags.\n2. Squeeze out all residual air before sealing.\n3. Label bag with date and dough weight (${ballWeight}g). Store at 0°F for up to 3 months.`,
+      visual_cue: "Sealed tight with zero air pockets. No ice crystals or frost inside.",
+      pro_tip: "Removing all air prevents freezer burn and protects yeast viability."
+    });
+
+    const tThaw = new Date(ready.getTime() - 22.5 * 3600 * 1000);
+    schedule.push({
+      step_num: step++,
+      title: "Overnight Refrigerator Thaw (18-24 Hours @ 38°F)",
+      action_category: "cold_retard",
+      display_time: formatDate(tThaw),
+      duration_str: "18-24 hours",
+      temp_desc: `Refrigerator ~${fridgeTemp}°F (Covered Container)`,
+      instruction: `1. Night before pizza night: transfer frozen ball(s) from freezer into lightly oiled covered container in refrigerator.\n2. Dough thaws slowly with zero thermal shock, and yeast gently awakens.`,
+      visual_cue: "Dough ball is fully thawed, cold, soft, and slightly relaxed.",
+      pro_tip: "Slow overnight refrigerator thawing produces dramatically better texture and flavor than rapid counter thawing."
+    });
+
+    const tTemper = new Date(ready.getTime() - 2.5 * 3600 * 1000);
+    schedule.push({
+      step_num: step++,
+      title: "Room Temperature Temper & Final Proof (2-3 Hours @ 70°F)",
+      action_category: "temper",
+      display_time: formatDate(tTemper),
+      duration_str: "2-3 hours",
+      temp_desc: `Room Temp ~${roomTemp}°F (Airtight)`,
+      instruction: `1. Remove container from fridge 2-3 hours before bake time.\n2. Keep covered at room temp (~70°F). Dough will warm to 60-65°F and expand until pillowy and passes poke test.`,
+      visual_cue: "Dough ball is warm, puffy, and pillowy. Poked gently, it springs back slowly.",
+      pro_tip: "NEVER stretch cold dough! Room temp tempering allows gluten to relax for effortless stretching."
+    });
+
+    tPreheat = new Date(ready.getTime() - 45 * 60 * 1000);
+  } else if (cfHours > 0 && availHours >= 6.0) {
     // COLD FERMENTATION SCHEDULE
     const bulkHours = Math.min(2.0, Math.max(0.75, rtHours * 0.35));
     const tBulkStart = tKneadDone;

@@ -168,6 +168,10 @@ class PizzaDoughAgent:
         if recipe.id == "adams_detroit" and duration_hours is None and not ready_time_str:
             duration_hours = 48.0
 
+        # Freezable dough defaults
+        if recipe.id == "adams_freezable" and duration_hours is None and not ready_time_str:
+            duration_hours = 24.0
+
         # 3. Resolve Timings
         mix_dt, ready_dt, total_hours = self.parse_time_target(
             ready_time_str=ready_time_str,
@@ -176,7 +180,9 @@ class PizzaDoughAgent:
         )
 
         # 4. Resolve Fermentation Mode
-        if ferment_type is None or ferment_type.upper() == "AUTO":
+        if recipe.id == "adams_freezable":
+            resolved_ferment = "FREEZE"
+        elif ferment_type is None or ferment_type.upper() == "AUTO":
             if total_hours > 12.0:
                 resolved_ferment = "CF"
             else:
@@ -185,15 +191,22 @@ class PizzaDoughAgent:
             resolved_ferment = ferment_type.upper()
 
         # 5. Scientific Yeast Kinetics Calculation
-        yeast_pct, equiv_rt_hours, rt_hours, cf_hours = calculate_yeast_percentage(
-            total_hours=total_hours,
-            ferment_type=resolved_ferment,
-            room_temp_f=room_temp_f,
-            fridge_temp_f=fridge_temp_f,
-            yeast_type=yeast_type,
-            custom_rt_hours=custom_rt_hours,
-            custom_cf_hours=custom_cf_hours,
-        )
+        if recipe.id == "adams_freezable":
+            # 2.5g IDY per 200g flour = 1.25% (calibrated buffer for freeze-thaw viability)
+            yeast_pct = 1.25
+            equiv_rt_hours = 2.5
+            rt_hours = 2.5
+            cf_hours = 20.0
+        else:
+            yeast_pct, equiv_rt_hours, rt_hours, cf_hours = calculate_yeast_percentage(
+                total_hours=total_hours,
+                ferment_type=resolved_ferment,
+                room_temp_f=room_temp_f,
+                fridge_temp_f=fridge_temp_f,
+                yeast_type=yeast_type,
+                custom_rt_hours=custom_rt_hours,
+                custom_cf_hours=custom_cf_hours,
+            )
 
         # 6. Desired Dough Temperature (DDT) Water Calculation
         water_temp_f, water_temp_desc = calculate_desired_dough_water_temp(
@@ -230,12 +243,20 @@ class PizzaDoughAgent:
         )
 
         # 9. Summary Text
-        summary = (
-            f"Plan for {target_balls}x {target_ball_weight}g pizzas ({recipe.name}). "
-            f"Fermentation window: {round(total_hours, 1)}h total "
-            f"({resolved_ferment} profile: {round(rt_hours, 1)}h room temp, {round(cf_hours, 1)}h cold retard). "
-            f"Calculated yeast: {ingredients.yeast_g}g ({ingredients.yeast_pct}% {yeast_type}, ~{format_tsp_fraction(ingredients.yeast_tsp)})."
-        )
+        if resolved_ferment == "FREEZE":
+            summary = (
+                f"Freezeable plan for {target_balls}x {target_ball_weight}g pizzas ({recipe.name}). "
+                f"Formula calibrated for freezing and baking in a regular home oven. "
+                f"Inoculation: {ingredients.yeast_g}g ({ingredients.yeast_pct}% {yeast_type}, ~{format_tsp_fraction(ingredients.yeast_tsp)}) "
+                f"with 3% olive oil and 2% sugar for optimal freeze protection and oven caramelization."
+            )
+        else:
+            summary = (
+                f"Plan for {target_balls}x {target_ball_weight}g pizzas ({recipe.name}). "
+                f"Fermentation window: {round(total_hours, 1)}h total "
+                f"({resolved_ferment} profile: {round(rt_hours, 1)}h room temp, {round(cf_hours, 1)}h cold retard). "
+                f"Calculated yeast: {ingredients.yeast_g}g ({ingredients.yeast_pct}% {yeast_type}, ~{format_tsp_fraction(ingredients.yeast_tsp)})."
+            )
 
         plan = DoughPlan(
             recipe=recipe,
@@ -276,7 +297,9 @@ class PizzaDoughAgent:
         # Detect recipe
         recipes = self.db.list_recipes()
         selected_recipe_id = "ny_style"
-        if pan_size or "detroit" in s or "frico" in s or "in the pan" in s or "pan pizza" in s:
+        if "freez" in s or "frozen" in s or "freezer" in s:
+            selected_recipe_id = "adams_freezable"
+        elif pan_size or "detroit" in s or "frico" in s or "in the pan" in s or "pan pizza" in s:
             selected_recipe_id = "adams_detroit"
         elif "neapolitan" in s or "napoli" in s:
             selected_recipe_id = "neapolitan"
@@ -301,19 +324,26 @@ class PizzaDoughAgent:
         ball_match = re.search(r"(\d+)\s+(?:[\w-]+\s+){0,3}(?:dough\s+)?(?:balls?|pizzas?|pies?|portions?|pans?)", s_clean)
         if ball_match:
             balls = int(ball_match.group(1))
+        elif re.search(r"\b(?:a|one)\s+(?:[\w-]+\s+){0,3}(?:dough|pizza|pie)\b", s_clean):
+            balls = 1
         elif pan_size or selected_recipe_id == "adams_detroit":
             balls = 1
+        elif selected_recipe_id == "adams_freezable":
+            balls = 1 if re.search(r"\b(?:a|one)\b", s_clean) else 4
 
-        # Detect ball weight or pan weight
+        # Detect ball weight or pan weight (strip ingredient gram weights like "200g flour")
         ball_weight = None
         if pan_size and pan_size in PAN_SIZES:
             ball_weight = PAN_SIZES[pan_size]["dough_weight_g"]
         else:
-            weight_match = re.search(r"(\d+)\s*(?:g|grams?|gram)\b", s)
+            s_no_ingredients = re.sub(r"\b\d+\s*(?:g|grams?)\s+(?:of\s+)?(?:flour|water|oil|salt|sugar|yeast)\b", "", s_clean)
+            weight_match = re.search(r"(\d+(?:\.\d+)?)\s*(?:g|grams?|gram)\b", s_no_ingredients)
             if weight_match:
                 val = float(weight_match.group(1))
                 if 150 <= val <= 900:
                     ball_weight = val
+            elif selected_recipe_id == "adams_freezable":
+                ball_weight = 340.5
 
         # Detect yeast type
         yeast_type = "IDY"

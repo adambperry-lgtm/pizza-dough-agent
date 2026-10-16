@@ -32,6 +32,9 @@ Common commands:
 # Calculate for two 8x10 Detroit pans with 72-hour cold retard
 /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough plan --recipe adams_detroit --pan 8x10 --balls 2 --hours 72
 
+# Calculate for Adam's Freezable Home Oven Dough (batch of 4 to freeze)
+/Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough plan --recipe adams_freezable --balls 4
+
 # Quick 4-hour same-day dough for dinner tonight
 /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent/dough quick --hours 4 --balls 3
 

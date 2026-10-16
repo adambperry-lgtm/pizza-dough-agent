@@ -152,6 +152,24 @@ SEED_RECIPES = [
         recommended_ferment="CF",
         notes="Calibrated for Detroit pans: 13x9 (643g dough / 350g flour), 14x10 (770g dough / 420g flour), and 8x10 (440g dough / 240g flour). Cold ferment 48-72h (2-3 days) directly in the well-oiled pan. Bring to room temp 3-4 hours before baking, dimpling to corners, top cheese edge-to-edge for crispy frico crust.",
         is_custom=True
+    ),
+    Recipe(
+        id="adams_freezable",
+        name="Adam's Freezable Home Oven Dough",
+        description="Freeze-ahead dough for regular oven: 200g flour, 124g water (62%), 6g olive oil (3%), 4g sugar (2%), 4g salt (2%), 2.5g yeast (1.25%). Flash-freeze after balling; store up to 3 months.",
+        flour_type="Bread Flour or All-Purpose Flour",
+        hydration_pct=62.0,
+        salt_pct=2.0,
+        oil_pct=3.0,
+        sugar_pct=2.0,
+        default_ball_weight=340.5,
+        default_balls=4,
+        oven_type="Regular Home Oven (475-525°F on Pizza Stone / Steel / Baking Sheet)",
+        bake_temp_f=500,
+        bake_time_min="7-10 minutes",
+        recommended_ferment="FREEZE",
+        notes="Formulated for freezing and baking in a regular home oven. 3% olive oil protects gluten from ice crystal damage; 2% sugar aids golden browning at standard home oven heat; 1.25% yeast offsets freezing mortality. Flash-freeze on parchment sheet 2-3h, seal in Ziploc bags (up to 3 months). Thaw overnight in fridge (18-24h) + 2-3h room temp proof before stretching.",
+        is_custom=True
     )
 ]
 

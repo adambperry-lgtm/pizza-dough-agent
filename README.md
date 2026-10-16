@@ -25,6 +25,7 @@ An intelligent, master-pizzaiolo-grade agent and pizza dough management platform
      - **Target Ball Weight & Count**
      - **Flour Recommendations & Oven Targets**
    - Pre-loaded with master styles and Adam's signature formulas:
+     - ❄️ `Adam's Freezable Home Oven Dough` (62.0% hydration, 3.0% oil, 2.0% sugar, 2.0% salt, 1.25% yeast for freezing up to 3 months & regular oven baking)
      - 🧀 `Adam's Detroit Style Pan Pizza` (74.3% hydration, 2.86% salt, 5.71% olive oil, 2-3 day in-pan cold ferment)
      - 🔥 `Adam's High-Heat Outdoor Dough` (62.0% hydration, 1.5% salt, 0% oil, 0% sugar for 900°F ovens)
      - 🗽 `Classic New York Style` (65% hydration, 2.3% salt, 2.0% oil, 1.5% sugar)
@@ -35,6 +36,8 @@ An intelligent, master-pizzaiolo-grade agent and pizza dough management platform
    - **Detroit & Sicilian Pan Sizing Support**:
      - Automatic area-scaled calculations for **13" × 9"** (643g dough / 350g flour), **14" × 10"** (770g dough / 419g flour), and **8" × 10"** (440g dough / 239g flour) pans.
      - Pan-specific proofing roadmap: in-pan cold fermentation (48–72h), room temp 4-corner dimpling proof (3–4h), lowest rack oven preheat, and caramelized frico cheese crown baking instructions.
+   - **Flash Freezing & Freezer-Storage Roadmap**:
+     - Specialized 10-step schedule: flash freeze on parchment sheet (2–3h @ 0°F), airtight freezer bag storage (up to 3 months), overnight refrigerator thaw (18–24h @ 38°F), and room-temp temper (2–3h @ 70°F).
 
 3. **Desired Dough Temperature (DDT) Water Calibration**:
    - Calculates exact water temperature needed:
@@ -95,12 +98,21 @@ cd /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent
 ./dough plan --recipe adams_detroit --pan 8x10 --balls 2
 ```
 
-### 5. Fast Same-Day Express Dough (Dinner in 4 Hours)
+### 5. Plan Adam's Freezable Home Oven Dough (Freeze up to 3 Months)
+```bash
+# Make a batch of 4 freezeable balls (340.5g each / 200g flour per ball)
+./dough plan --recipe adams_freezable --balls 4
+
+# Or plan a single freezeable dough ball
+./dough plan --recipe adams_freezable --balls 1
+```
+
+### 6. Fast Same-Day Express Dough (Dinner in 4 Hours)
 ```bash
 ./dough quick --hours 4 --balls 3
 ```
 
-### 6. Add Your Own Base Recipe
+### 7. Add Your Own Base Recipe
 ```bash
 ./dough recipe add \
   --id my_crust \
@@ -118,15 +130,16 @@ cd /Users/adamperry/.gemini/antigravity/scratch/pizza_dough_agent
   --notes "Cold ferment 48 hours. Let warm up 3 hours before stretching."
 ```
 
-### 7. Ask the Agent in Natural Conversational English
+### 8. Ask the Agent in Natural Conversational English
 ```bash
+./dough ask "i also make a freezeable pizza dough for use in a regular oven: 200g flour, 6g olive oil, 4g sugar, 4g salt, 2.5g yeast"
 ./dough ask "For a 13 x 9 detroit style pizza pan: 350g bread flour, 260g water, 3g yeast, 10g salt, 20g olive oil"
 ./dough ask "I want two 8x10 detroit pan pizzas for 3 days from now"
 ./dough ask "I want 4 Neapolitan dough balls of 250g each for tomorrow night at 7pm"
 ./dough ask "I have 5 hours until dinner, make 3 pizzas with instant dry yeast"
 ```
 
-### 8. Launch the Interactive Web Dashboard
+### 9. Launch the Interactive Web Dashboard
 ```bash
 ./dough serve --port 8001
 ```

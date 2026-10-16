@@ -197,7 +197,75 @@ class TestPizzaDoughAgent(unittest.TestCase):
         self.assertEqual(plan_multi.ingredients.ball_weight_g, 440.0)
         self.assertAlmostEqual(plan_multi.total_hours, 72.0, places=0)
 
+    def test_freezable_recipe_exact_ingredients(self):
+        recipe = self.db.get_recipe("adams_freezable")
+        self.assertIsNotNone(recipe)
+        self.assertEqual(recipe.name, "Adam's Freezable Home Oven Dough")
+        self.assertEqual(recipe.hydration_pct, 62.0)
+        self.assertEqual(recipe.salt_pct, 2.0)
+        self.assertEqual(recipe.oil_pct, 3.0)
+        self.assertEqual(recipe.sugar_pct, 2.0)
+
+        # Single ball plan
+        plan = self.agent.create_plan(
+            recipe_id_or_name="adams_freezable",
+            balls=1,
+            ball_weight_g=340.5,
+        )
+        self.assertEqual(plan.ingredients.balls, 1)
+        self.assertAlmostEqual(plan.ingredients.ball_weight_g, 340.5, places=1)
+        self.assertAlmostEqual(plan.ingredients.flour_g, 200.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.water_g, 124.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.oil_g, 6.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.sugar_g, 4.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.salt_g, 4.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.yeast_g, 2.5, places=1)
+
+        # 4 balls batch
+        batch = self.agent.create_plan(
+            recipe_id_or_name="adams_freezable",
+            balls=4,
+            ball_weight_g=340.5,
+        )
+        self.assertAlmostEqual(batch.ingredients.flour_g, 800.0, places=1)
+        self.assertAlmostEqual(batch.ingredients.water_g, 496.0, places=1)
+        self.assertAlmostEqual(batch.ingredients.oil_g, 24.0, places=1)
+        self.assertAlmostEqual(batch.ingredients.sugar_g, 16.0, places=1)
+        self.assertAlmostEqual(batch.ingredients.salt_g, 16.0, places=1)
+        self.assertAlmostEqual(batch.ingredients.yeast_g, 10.0, places=1)
+
+    def test_freezable_proofing_milestones(self):
+        plan = self.agent.create_plan(
+            recipe_id_or_name="adams_freezable",
+            balls=4,
+            ball_weight_g=340.5,
+        )
+        milestone_titles = [m.title for m in plan.schedule]
+        self.assertEqual(len(plan.schedule), 10)
+        self.assertTrue(any("Flash Freeze" in t for t in milestone_titles))
+        self.assertTrue(any("Airtight Storage" in t for t in milestone_titles))
+        self.assertTrue(any("Overnight Refrigerator Thaw" in t for t in milestone_titles))
+        self.assertTrue(any("Room Temperature Temper" in t for t in milestone_titles))
+        self.assertTrue(any("Preheat Regular Home Oven" in t for t in milestone_titles))
+        self.assertTrue(any("Stretch, Top & Bake" in t for t in milestone_titles))
+
+    def test_freezable_natural_language_parsing(self):
+        # Exact prompt from user
+        plan = self.agent.parse_natural_language_request(
+            "i also make a freezeable pizza dough for use in a regular oven: 200g flour, 6g olive oil, 4g sugar, 4g salt, 2.5g yeast"
+        )
+        self.assertEqual(plan.recipe.id, "adams_freezable")
+        self.assertEqual(plan.ingredients.balls, 1)
+        self.assertAlmostEqual(plan.ingredients.ball_weight_g, 340.5, places=1)
+        self.assertAlmostEqual(plan.ingredients.flour_g, 200.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.water_g, 124.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.oil_g, 6.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.sugar_g, 4.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.salt_g, 4.0, places=1)
+        self.assertAlmostEqual(plan.ingredients.yeast_g, 2.5, places=1)
+
 
 if __name__ == "__main__":
     unittest.main()
+
 

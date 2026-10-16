@@ -24,6 +24,7 @@ def generate_proofing_schedule(
     milestones: List[ProofingMilestone] = []
     step = 1
     is_pan_style = ("detroit" in recipe.id.lower() or "detroit" in recipe.name.lower() or "pan" in recipe.name.lower())
+    is_freezable = ("freez" in recipe.id.lower() or "freez" in recipe.name.lower())
 
     # Format helper
     def dt_str(dt: datetime) -> str:
@@ -36,9 +37,14 @@ def generate_proofing_schedule(
         f"Pour 1-2 tbsp (15-25g) extra virgin olive oil into the pan and rub over the entire bottom, sides, and corners."
         if is_pan_style else ""
     )
+    title_step_1 = "Mise en Place & Water Prep (Lukewarm ~85°F)" if is_freezable else ("Mise en Place, Water Prep & Detroit Pan Setup" if is_pan_style else "Mise en Place & Water Temperature Calibration")
+    protip_step_1 = (
+        "Always use a gram scale. In this freezeable formula, olive oil protects cell walls against ice crystallization damage, and sugar promotes golden crust caramelization in standard home ovens!"
+        if is_freezable else "Always use a gram scale. Volumetric cup measurements introduce up to 25% error in flour density!"
+    )
     milestones.append(ProofingMilestone(
         step_num=step,
-        title="Mise en Place & Water Temperature Calibration" if not is_pan_style else "Mise en Place, Water Prep & Detroit Pan Setup",
+        title=title_step_1,
         action_category="mix",
         timestamp_iso=t_start.isoformat(),
         display_time=dt_str(t_start),
@@ -50,19 +56,23 @@ def generate_proofing_schedule(
             f"and {ingredients.yeast_g}g {yeast_type} "
             f"({format_tsp_fraction(ingredients.yeast_tsp)})."
             + (f" Also weigh {ingredients.oil_g}g extra virgin olive oil." if ingredients.oil_g > 0 else "")
-            + (f" Also weigh {ingredients.sugar_g}g sugar/malt." if ingredients.sugar_g > 0 else "")
+            + (f" Also weigh {ingredients.sugar_g}g granulated sugar." if ingredients.sugar_g > 0 else "")
             + f"\n2. Calibrate water to {water_temp_f}°F using the Desired Dough Temperature formula. "
-            + ("If using Active Dry Yeast (ADY), bloom in 50g of warm water for 7 minutes first." if yeast_type == "ADY" else "If using Instant Dry Yeast (IDY), whisk directly into flour or dissolve in the water.")
+            + ("Whisk sugar and yeast into the warm water to jumpstart fermentation." if is_freezable else ("If using Active Dry Yeast (ADY), bloom in 50g of warm water for 7 minutes first." if yeast_type == "ADY" else "If using Instant Dry Yeast (IDY), whisk directly into flour or dissolve in the water."))
             + pan_setup_note
         ),
         visual_cue="Ingredients accurately weighed on a gram scale; yeast completely dissolved or dispersed." + (" Pan thoroughly coated in olive oil." if is_pan_style else ""),
-        pro_tip="Always use a gram scale. Volumetric cup measurements introduce up to 25% error in flour density!"
+        pro_tip=protip_step_1
     ))
     step += 1
 
     # Step 2: Autolyse / Rest & Knead
     t_autolyse = t_start + timedelta(minutes=15)
     t_knead_end = t_autolyse + timedelta(minutes=20)
+    protip_step_2 = (
+        "Knead until a complete windowpane is achieved! Developing a strong gluten network before freezing ensures the dough retains its structural elasticity and gas-trapping ability upon thawing."
+        if is_freezable else "Adding oil at the very end of kneading allows gluten bonds to form first, preventing fat from coating flour proteins prematurely."
+    )
     milestones.append(ProofingMilestone(
         step_num=step,
         title="Autolyse Rest & Gluten Development (Kneading)",
@@ -77,15 +87,191 @@ def generate_proofing_schedule(
             f"2. Add {ingredients.salt_g}g salt"
             + (f", {ingredients.sugar_g}g sugar" if ingredients.sugar_g > 0 else "")
             + (f", and {ingredients.oil_g}g olive oil towards the end of mixing." if ingredients.oil_g > 0 else ".")
-            + "\n3. Knead for 6-8 minutes by hand (or 4-5 mins in stand mixer on low speed) until smooth and elastic."
+            + "\n3. Knead for 7-9 minutes by hand (or 5-6 mins in stand mixer on medium-low speed) until smooth, elastic, and satiny."
         ),
         visual_cue="The dough transitions from shaggy and sticky to smooth, supple, and satiny. Passes the 'windowpane test' (stretches thin enough to see light through without tearing).",
-        pro_tip="Adding oil at the very end of kneading allows gluten bonds to form first, preventing fat from coating flour proteins prematurely."
+        pro_tip=protip_step_2
     ))
     step += 1
 
     # Available time between end of kneading and ready_time
     t_knead_done = t_knead_end  # t_start + 35 min
+
+    if is_freezable:
+        # FREEZING & THAWING SPECIALIZED ROADMAP
+        # Step 3: Bench Rest & Dividing
+        t_rest = t_knead_done
+        t_rest_done = t_rest + timedelta(minutes=15)
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title=f"Bench Rest & Divide into {ingredients.balls} Portion{'s' if ingredients.balls > 1 else ''} ({ingredients.ball_weight_g}g each)",
+            action_category="ball",
+            timestamp_iso=t_rest.isoformat(),
+            display_time=dt_str(t_rest),
+            duration_str="15 mins",
+            temp_desc=f"Room Temp ~{room_temp_f}°F",
+            instruction=(
+                f"1. Cover dough mass with a damp towel or inverted bowl and let rest 10-15 minutes on the counter to relax gluten.\n"
+                f"2. Cut into {ingredients.balls} equal pieces using a bench scraper, each weighing exactly {ingredients.ball_weight_g}g."
+            ),
+            visual_cue="Relaxed dough cuts cleanly with bench scraper.",
+            pro_tip="A brief rest makes portioning and rounding effortless without dough tearing."
+        ))
+        step += 1
+
+        # Step 4: Rounding & Taut Balling
+        t_ball = t_rest_done
+        t_ball_done = t_ball + timedelta(minutes=15)
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title=f"Shape into {ingredients.balls} Taut, Smooth Dough Ball{'s' if ingredients.balls > 1 else ''}",
+            action_category="ball",
+            timestamp_iso=t_ball.isoformat(),
+            display_time=dt_str(t_ball),
+            duration_str="15 mins",
+            temp_desc="Room Temp Bench",
+            instruction=(
+                "1. Cup your hand over each dough portion and drag in a circular motion firmly against un-floured counter to build tight surface tension.\n"
+                "2. Pinch the bottom seam completely shut.\n"
+                "3. Rub each ball with a light sheen of olive oil on all sides (this creates a protective barrier against moisture loss and freezer stickiness)."
+            ),
+            visual_cue="Smooth, tight spheres with glossy surface and tightly sealed bottom seams.",
+            pro_tip="Surface tension holds the shape and prevents dough from flattening out in the freezer."
+        ))
+        step += 1
+
+        # Step 5: Flash Freeze on Baking Sheet
+        t_freeze_start = t_ball_done
+        t_freeze_done = t_freeze_start + timedelta(hours=2.5)
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title="Flash Freeze on Baking Sheet (2-3 Hours @ 0°F)",
+            action_category="freeze",
+            timestamp_iso=t_freeze_start.isoformat(),
+            display_time=dt_str(t_freeze_start),
+            duration_str="2-3 hours",
+            temp_desc="Freezer ~0°F (Parchment Tray)",
+            instruction=(
+                "1. Line a rimmed baking sheet or metal tray with parchment paper.\n"
+                "2. Arrange oiled dough balls on the sheet, spaced 2-3 inches apart so they don't touch.\n"
+                "3. Place sheet uncovered in the freezer at ~0°F for 2 to 3 hours until dough balls freeze solid to the core."
+            ),
+            visual_cue="Dough balls are rock solid to the touch and hold their shape completely when lifted.",
+            pro_tip="Flash freezing individually ensures balls will NEVER stick together or deform when bagged together!"
+        ))
+        step += 1
+
+        # Step 6: Airtight Storage in Freezer Bags
+        t_bag = t_freeze_done
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title="Airtight Storage in Freezer Bags (Up to 3 Months @ 0°F)",
+            action_category="freeze",
+            timestamp_iso=t_bag.isoformat(),
+            display_time=dt_str(t_bag),
+            duration_str="Up to 3 months",
+            temp_desc="Deep Freezer 0°F (Airtight Bags)",
+            instruction=(
+                f"1. Remove frozen balls from tray and transfer into heavy-duty Ziploc freezer bags or individual vacuum-seal bags.\n"
+                "2. Press all air out of the bag before zipping (or insert a drinking straw into the corner to suck out all residual air).\n"
+                f"3. Label bag with date and dough weight ({ingredients.ball_weight_g}g). Keep frozen at 0°F for up to 3 months."
+            ),
+            visual_cue="Sealed tight with zero air pockets. No ice crystals or freezer frost inside.",
+            pro_tip="Air is the enemy of frozen dough! An airtight seal prevents freezer burn and protects yeast viability."
+        ))
+        step += 1
+
+        # Resolve thaw & bake timestamps
+        if ready_time > t_bag + timedelta(hours=24):
+            t_bake = ready_time
+            t_preheat = ready_time - timedelta(minutes=45)
+            t_temper = ready_time - timedelta(hours=2.5)
+            t_thaw = t_temper - timedelta(hours=20.0)
+        else:
+            t_thaw = t_bag + timedelta(days=1)
+            t_temper = t_thaw + timedelta(hours=20.0)
+            t_preheat = t_temper + timedelta(hours=2.0)
+            t_bake = t_preheat + timedelta(minutes=45)
+
+        # Step 7: Overnight Refrigerator Thaw
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title="Overnight Refrigerator Thaw (18-24 Hours @ 38°F)",
+            action_category="cold_retard",
+            timestamp_iso=t_thaw.isoformat(),
+            display_time=dt_str(t_thaw),
+            duration_str="18-24 hours",
+            temp_desc=f"Refrigerator ~{fridge_temp_f}°F (Covered Container)",
+            instruction=(
+                "1. The night before pizza night (18-24 hours before baking): transfer desired frozen dough ball(s) from freezer into lightly oiled covered round containers or bowls.\n"
+                f"2. Keep covered in the refrigerator at ~{fridge_temp_f}°F overnight.\n"
+                "3. In the refrigerator, the dough gently thaws with zero thermal shock, and yeast slowly awakens as starches convert to sugar."
+            ),
+            visual_cue="Dough ball is fully thawed, cold, soft, and slightly relaxed across container bottom.",
+            pro_tip="Slow overnight refrigerator thawing produces dramatically better texture and flavor than rapid counter thawing."
+        ))
+        step += 1
+
+        # Step 8: Room Temperature Temper & Final Proof
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title="Room Temperature Temper & Final Proof (2-3 Hours @ 70°F)",
+            action_category="temper",
+            timestamp_iso=t_temper.isoformat(),
+            display_time=dt_str(t_temper),
+            duration_str="2-3 hours",
+            temp_desc=f"Room Temp ~{room_temp_f}°F (Airtight)",
+            instruction=(
+                "1. Remove container from refrigerator 2-3 hours before target bake time.\n"
+                "2. KEEP CONTAINER AIRTIGHT to prevent condensation drying out the dough skin.\n"
+                f"3. Allow internal dough temperature to rise from 38°F to 60-65°F at room temperature (~{room_temp_f}°F).\n"
+                "4. Yeast will activate vigorously and expand the ball until pillowy and passes the poke test."
+            ),
+            visual_cue="Dough ball is warm, puffy, and pillowy. Poked gently with a floured finger, it springs back slowly.",
+            pro_tip="NEVER stretch cold dough straight from the fridge! Cold gluten resists, snaps back, tears easily, and creates dense gum-lines."
+        ))
+        step += 1
+
+        # Step 9: Oven Preheat
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title=f"Preheat Regular Home Oven to {recipe.bake_temp_f}°F",
+            action_category="preheat",
+            timestamp_iso=t_preheat.isoformat(),
+            display_time=dt_str(t_preheat),
+            duration_str="45 mins",
+            temp_desc=f"{recipe.bake_temp_f}°F High Heat",
+            instruction=(
+                f"1. Place pizza stone or baking steel on the middle or upper-middle rack.\n"
+                f"2. Preheat regular home oven to {recipe.bake_temp_f}°F (or maximum bake setting) for at least 45 minutes.\n"
+                "3. Fully heat-saturating the stone/steel guarantees instant bottom spring and crispy crust."
+            ),
+            visual_cue="Baking stone or steel is screaming hot and fully heat-soaked.",
+            pro_tip="Baking on a preheated pizza stone or steel delivers 18x faster heat transfer than a cold metal baking sheet!"
+        ))
+        step += 1
+
+        # Step 10: Stretch, Top & Bake
+        milestones.append(ProofingMilestone(
+            step_num=step,
+            title=f"Stretch, Top & Bake ({recipe.bake_time_min})",
+            action_category="bake",
+            timestamp_iso=t_bake.isoformat(),
+            display_time=dt_str(t_bake),
+            duration_str=recipe.bake_time_min,
+            temp_desc=f"{recipe.bake_temp_f}°F",
+            instruction=(
+                "1. Invert container gently onto a lightly floured or semolina-dusted counter.\n"
+                "2. Press gently with fingertips from the center outward, leaving a 1/2-inch puffy border for the crust rim.\n"
+                "3. Lift onto floured knuckles and stretch to 12-14 inches diameter.\n"
+                "4. Transfer to a dusted peel or parchment paper. Top with sauce, shredded low-moisture mozzarella, and favorite toppings.\n"
+                f"5. Slide onto hot stone/steel and bake for {recipe.bake_time_min} until the crust is deep golden brown and cheese is bubbling with toasted spots."
+            ),
+            visual_cue="Deep golden browned crust with crisp bottom and bubbly melted cheese.",
+            pro_tip="Sugar in this recipe promotes gorgeous caramelization and crust browning even in standard 500°F home ovens!"
+        ))
+        return milestones
+
     avail_seconds = max(1800.0, (ready_time - t_knead_done).total_seconds())
     avail_hours = avail_seconds / 3600.0
 
