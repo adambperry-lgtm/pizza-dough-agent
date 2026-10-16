@@ -1,0 +1,11 @@
+.github_token
+.gemini_key
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.db-journal
+*.db-wal
+*.db-shm
+.DS_Store
+*.log

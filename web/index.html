@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>🍕 Pizza Dough Artisan Agent</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-container">
+    <!-- Header -->
+    <header class="app-header">
+      <div class="header-brand">
+        <div class="brand-logo">🍕</div>
+        <div>
+          <h1>Pizza Dough Artisan Agent</h1>
+          <p class="subtitle">Base Recipe Engine • Dynamic Yeast Kinetics • Step-by-Step Proofing Roadmap</p>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button id="btn-new-recipe" class="btn btn-secondary">＋ Add Custom Recipe</button>
+        <button id="btn-print" class="btn btn-primary">🖨️ Print Kitchen Sheet</button>
+      </div>
+    </header>
+
+    <!-- Main Grid -->
+    <main class="dashboard-grid">
+      <!-- Left Column: Controls & Configuration -->
+      <section class="card config-card">
+        <h2 class="card-title">⚙️ Dough & Timing Setup</h2>
+
+        <!-- Recipe Selector -->
+        <div class="form-group">
+          <div class="label-row">
+            <label for="recipe-select">Base Recipe</label>
+            <button id="btn-edit-recipe" class="btn-link">Edit / View Recipe</button>
+          </div>
+          <select id="recipe-select" class="form-control select-hero">
+            <!-- Dynamically populated -->
+          </select>
+          <div id="recipe-desc" class="recipe-description-badge"></div>
+        </div>
+
+        <!-- Dough Scale Controls -->
+        <div class="controls-row">
+          <div class="form-group half-width">
+            <div class="label-row">
+              <label for="balls-input">Dough Balls</label>
+              <span id="balls-val" class="pill-badge">4</span>
+            </div>
+            <input type="range" id="balls-slider" min="1" max="12" value="4" class="slider">
+          </div>
+
+          <div class="form-group half-width">
+            <div class="label-row">
+              <label for="weight-input">Ball Weight</label>
+              <span id="weight-val" class="pill-badge">260 g</span>
+            </div>
+            <input type="range" id="weight-slider" min="180" max="520" step="5" value="260" class="slider">
+          </div>
+        </div>
+
+        <!-- Timing Presets -->
+        <div class="form-group">
+          <label>Fermentation Window Presets</label>
+          <div class="presets-grid">
+            <button class="preset-btn" data-hours="4" data-ferment="RT">⚡ Quick (4h)</button>
+            <button class="preset-btn active" data-hours="24" data-ferment="CF">📅 Tomorrow (24h)</button>
+            <button class="preset-btn" data-hours="48" data-ferment="CF">❄️ 2-Day Cold (48h)</button>
+            <button class="preset-btn" data-hours="72" data-ferment="CF">👑 3-Day Peak (72h)</button>
+          </div>
+        </div>
+
+        <!-- Custom Duration / Ready Target -->
+        <div class="controls-row">
+          <div class="form-group half-width">
+            <label for="hours-input">Total Hours (Make to Bake)</label>
+            <input type="number" id="hours-input" min="1" max="120" step="0.5" value="24" class="form-control">
+          </div>
+          <div class="form-group half-width">
+            <label for="yeast-select">Yeast Type</label>
+            <select id="yeast-select" class="form-control">
+              <option value="IDY" selected>Instant Dry Yeast (IDY)</option>
+              <option value="ADY">Active Dry Yeast (ADY)</option>
+              <option value="CY">Fresh / Cake Yeast (CY)</option>
+              <option value="SOURDOUGH">Sourdough Starter (Levain)</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Ambient Temperatures -->
+        <div class="ambient-box">
+          <div class="ambient-header">🌡️ Ambient Environment Calibration</div>
+          <div class="controls-row">
+            <div class="form-group half-width">
+              <div class="label-row">
+                <label for="room-temp-slider">Room Temp</label>
+                <span id="room-temp-val" class="mono-badge">70°F</span>
+              </div>
+              <input type="range" id="room-temp-slider" min="60" max="85" value="70" class="slider">
+            </div>
+            <div class="form-group half-width">
+              <div class="label-row">
+                <label for="fridge-temp-slider">Fridge Temp</label>
+                <span id="fridge-temp-val" class="mono-badge">38°F</span>
+              </div>
+              <input type="range" id="fridge-temp-slider" min="34" max="44" value="38" class="slider">
+            </div>
+          </div>
+        </div>
+
+        <!-- Fermentation Profile Mode -->
+        <div class="form-group" style="margin-top: 1rem;">
+          <label>Fermentation Profile</label>
+          <div class="segmented-control">
+            <button class="segment-btn active" data-mode="AUTO">Auto Recommend</button>
+            <button class="segment-btn" data-mode="CF">Cold Ferment (Fridge)</button>
+            <button class="segment-btn" data-mode="RT">Room Temp Only</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Right Column: Live Scaled Formula & DDT -->
+      <section class="card formula-card">
+        <div class="card-header-flex">
+          <div>
+            <h2 class="card-title">⚖️ Baker's Percentage Formula</h2>
+            <p id="formula-meta" class="formula-subtitle">4 balls @ 260g = 1,040g total dough</p>
+          </div>
+          <div class="total-weight-pill" id="total-weight-display">1,040 g</div>
+        </div>
+
+        <!-- Dynamic Ingredients Table -->
+        <div class="table-container">
+          <table class="formula-table">
+            <thead>
+              <tr>
+                <th>Ingredient</th>
+                <th>Baker's %</th>
+                <th class="text-right">Grams (Scale)</th>
+                <th class="text-right">Kitchen Measure</th>
+              </tr>
+            </thead>
+            <tbody id="ingredients-tbody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- DDT Banner -->
+        <div class="ddt-banner">
+          <div class="ddt-icon">💧</div>
+          <div class="ddt-content">
+            <div class="ddt-title">Desired Dough Water Temp: <span id="ddt-temp">87°F</span></div>
+            <div class="ddt-desc" id="ddt-desc">Lukewarm tap water to hit target 76°F finished dough.</div>
+          </div>
+        </div>
+
+        <!-- Yeast Kinetic Insight Banner -->
+        <div class="kinetic-banner">
+          <div class="kinetic-icon">🔬</div>
+          <div class="kinetic-content">
+            <div class="kinetic-title">Craig Fermentation Kinetics Insight:</div>
+            <div class="kinetic-desc" id="kinetic-desc">Calculated based on equivalent room-temperature fermentation hours.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Full-Width Bottom Section: Chronological Proofing Roadmap -->
+      <section class="card schedule-card full-width">
+        <div class="card-header-flex">
+          <div>
+            <h2 class="card-title">📋 Step-by-Step Proofing Roadmap & Master Instructions</h2>
+            <p class="subtitle" id="schedule-subtitle">Timestamped steps from mixing to baking</p>
+          </div>
+          <div class="timeline-legend">
+            <span class="legend-badge">🥣 Prep</span>
+            <span class="legend-badge">🌀 Knead</span>
+            <span class="legend-badge">⏳ Bulk</span>
+            <span class="legend-badge">⚪ Ball</span>
+            <span class="legend-badge">❄️ Cold Retard</span>
+            <span class="legend-badge">🌡️ Temper</span>
+            <span class="legend-badge">🍕 Bake</span>
+          </div>
+        </div>
+
+        <!-- Timeline Container -->
+        <div class="timeline-wrapper" id="timeline-steps">
+          <!-- Dynamically populated -->
+        </div>
+      </section>
+    </main>
+
+    <!-- Recipe Modal (Add / Edit) -->
+    <div id="recipe-modal" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <div class="modal-header">
+          <h3 id="modal-title">Custom Base Recipe</h3>
+          <button id="modal-close" class="modal-close-btn">&times;</button>
+        </div>
+        <form id="recipe-form" class="modal-body">
+          <div class="form-group">
+            <label for="rec-id">Recipe ID (Slug)</label>
+            <input type="text" id="rec-id" required class="form-control" placeholder="e.g. adams_secret_crust">
+          </div>
+          <div class="form-group">
+            <label for="rec-name">Recipe Display Name</label>
+            <input type="text" id="rec-name" required class="form-control" placeholder="e.g. Adam's Cold-Ferment NY Style">
+          </div>
+          <div class="form-group">
+            <label for="rec-flour">Recommended Flour Type</label>
+            <input type="text" id="rec-flour" class="form-control" placeholder="e.g. King Arthur Bread Flour or Caputo 00">
+          </div>
+
+          <div class="controls-row">
+            <div class="form-group quarter-width">
+              <label for="rec-hyd">Hydration %</label>
+              <input type="number" id="rec-hyd" step="0.5" required class="form-control" value="65.0">
+            </div>
+            <div class="form-group quarter-width">
+              <label for="rec-salt">Salt %</label>
+              <input type="number" id="rec-salt" step="0.1" required class="form-control" value="2.4">
+            </div>
+            <div class="form-group quarter-width">
+              <label for="rec-oil">Oil %</label>
+              <input type="number" id="rec-oil" step="0.1" class="form-control" value="2.0">
+            </div>
+            <div class="form-group quarter-width">
+              <label for="rec-sugar">Sugar %</label>
+              <input type="number" id="rec-sugar" step="0.1" class="form-control" value="1.5">
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <div class="form-group half-width">
+              <label for="rec-weight">Default Ball Weight (g)</label>
+              <input type="number" id="rec-weight" class="form-control" value="260">
+            </div>
+            <div class="form-group half-width">
+              <label for="rec-balls">Default Balls</label>
+              <input type="number" id="rec-balls" class="form-control" value="4">
+            </div>
+          </div>
+
+          <div class="controls-row">
+            <div class="form-group half-width">
+              <label for="rec-oven">Oven Setup</label>
+              <input type="text" id="rec-oven" class="form-control" value="Home Oven (550°F / Pizza Steel)">
+            </div>
+            <div class="form-group half-width">
+              <label for="rec-temp">Bake Temp (°F)</label>
+              <input type="number" id="rec-temp" class="form-control" value="550">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="rec-notes">Notes & Instructions</label>
+            <textarea id="rec-notes" class="form-control" rows="2" placeholder="Tips for stretching, toppings, or flour mixes..."></textarea>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" id="btn-delete-recipe" class="btn btn-danger hidden">Delete Recipe</button>
+            <div style="flex: 1;"></div>
+            <button type="button" id="btn-cancel-modal" class="btn btn-secondary">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Recipe</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>

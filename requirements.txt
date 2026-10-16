@@ -1,0 +1,4 @@
+# 🍕 Pizza Dough Artisan Agent
+# The core server, SQLite database, Craig fermentation kinetics engine,
+# and proofing scheduler run purely on Python 3.9+ standard library
+# with zero external mandatory package dependencies.
