@@ -382,10 +382,15 @@ async function loadRecipes() {
     recipesState = fetched;
   } else {
     // Load offline recipes + any saved in localStorage
-    const stored = localStorage.getItem("pizza_custom_recipes");
+    let stored = null;
     let customList = [];
-    if (stored) {
-      try { customList = JSON.parse(stored); } catch (e) {}
+    try {
+      stored = localStorage.getItem("pizza_custom_recipes");
+      if (stored) {
+        customList = JSON.parse(stored);
+      }
+    } catch (e) {
+      console.warn("localStorage not available:", e);
     }
     recipesState = [...customList, ...DEFAULT_RECIPES];
     // Deduplicate by ID
@@ -1050,12 +1055,15 @@ async function handleSaveRecipe(e) {
   }
 
   // Save to localStorage for standalone offline mode
-  let stored = [];
-  try { stored = JSON.parse(localStorage.getItem("pizza_custom_recipes") || "[]"); } catch (e) {}
-  const idx = stored.findIndex(r => r.id === id);
-  if (idx >= 0) stored[idx] = payload;
-  else stored.unshift(payload);
-  localStorage.setItem("pizza_custom_recipes", JSON.stringify(stored));
+  try {
+    let stored = JSON.parse(localStorage.getItem("pizza_custom_recipes") || "[]");
+    const idx = stored.findIndex(r => r.id === id);
+    if (idx >= 0) stored[idx] = payload;
+    else stored.unshift(payload);
+    localStorage.setItem("pizza_custom_recipes", JSON.stringify(stored));
+  } catch (e) {
+    console.warn("Could not save to localStorage:", e);
+  }
 
   closeRecipeModal();
   await loadRecipes();
@@ -1080,10 +1088,13 @@ async function handleDeleteRecipe() {
   }
 
   // Remove from localStorage
-  let stored = [];
-  try { stored = JSON.parse(localStorage.getItem("pizza_custom_recipes") || "[]"); } catch (e) {}
-  stored = stored.filter(r => r.id !== id);
-  localStorage.setItem("pizza_custom_recipes", JSON.stringify(stored));
+  try {
+    let stored = JSON.parse(localStorage.getItem("pizza_custom_recipes") || "[]");
+    stored = stored.filter(r => r.id !== id);
+    localStorage.setItem("pizza_custom_recipes", JSON.stringify(stored));
+  } catch (e) {
+    console.warn("Could not remove from localStorage:", e);
+  }
 
   closeRecipeModal();
   await loadRecipes();
