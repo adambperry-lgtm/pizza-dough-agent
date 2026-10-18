@@ -30,7 +30,7 @@ def generate_proofing_schedule(
     def dt_str(dt: datetime) -> str:
         return dt.strftime("%A, %b %-d at %-I:%M %p")
 
-    # Step 1: Mise en Place & Water Prep
+    # Step 1: Mise en Place & Water / Yeast Preparation
     t_start = mix_time
     pan_setup_note = (
         f"\n3. Prepare your Detroit pizza pan(s) (13x9, 14x10, or 8x10 LloydPan or dark blue steel). "
@@ -40,8 +40,42 @@ def generate_proofing_schedule(
     title_step_1 = "Mise en Place & Water Prep (Lukewarm ~85°F)" if is_freezable else ("Mise en Place, Water Prep & Detroit Pan Setup" if is_pan_style else "Mise en Place & Water Temperature Calibration")
     protip_step_1 = (
         "Always use a gram scale. In this freezeable formula, olive oil protects cell walls against ice crystallization damage, and sugar promotes golden crust caramelization in standard home ovens!"
-        if is_freezable else "Always use a gram scale. Volumetric cup measurements introduce up to 25% error in flour density!"
+        if is_freezable else
+        "Always use a gram scale! Never pour salt directly onto dry yeast—salt draws moisture out of yeast cells via osmotic shock. Always disperse yeast into the calibrated water or flour before introducing salt."
     )
+
+    if is_freezable:
+        yeast_prep = (
+            f"Calibrate water to {water_temp_f}°F (~80-85°F). "
+            f"Whisk {ingredients.sugar_g}g sugar and {ingredients.yeast_g}g {yeast_type} yeast "
+            f"directly into the warm water until dissolved to activate and jumpstart hydration."
+        )
+    elif yeast_type == "ADY":
+        yeast_prep = (
+            f"Calibrate water to {water_temp_f}°F using the DDT formula. "
+            f"Bloom yeast: Take ~50g of the calibrated warm water into a small cup, whisk in {ingredients.yeast_g}g Active Dry Yeast (ADY)"
+            + (f" with a small pinch of sugar" if ingredients.sugar_g > 0 else "")
+            + f", and let rest for 7-10 minutes until vigorously foamy before mixing."
+        )
+    elif yeast_type == "CY":
+        yeast_prep = (
+            f"Calibrate water to {water_temp_f}°F using the DDT formula. "
+            f"Dissolve yeast: Crumble {ingredients.yeast_g}g fresh cake yeast (CY) directly into the calibrated water "
+            f"and whisk until completely dissolved and milky."
+        )
+    elif yeast_type == "SOURDOUGH":
+        yeast_prep = (
+            f"Calibrate water to {water_temp_f}°F using the DDT formula. "
+            f"Dissolve starter: Whisk {ingredients.yeast_g}g active sourdough starter directly into the calibrated water "
+            f"until fully aerated and dispersed."
+        )
+    else:  # IDY
+        yeast_prep = (
+            f"Calibrate water to {water_temp_f}°F using the DDT formula. "
+            f"Dissolve yeast: Whisk {ingredients.yeast_g}g Instant Dry Yeast (IDY) directly into the calibrated water "
+            f"until fully dissolved and dispersed (or whisk thoroughly into the dry flour)."
+        )
+
     milestones.append(ProofingMilestone(
         step_num=step,
         title=title_step_1,
@@ -57,11 +91,10 @@ def generate_proofing_schedule(
             f"({format_tsp_fraction(ingredients.yeast_tsp)})."
             + (f" Also weigh {ingredients.oil_g}g extra virgin olive oil." if ingredients.oil_g > 0 else "")
             + (f" Also weigh {ingredients.sugar_g}g granulated sugar." if ingredients.sugar_g > 0 else "")
-            + f"\n2. Calibrate water to {water_temp_f}°F using the Desired Dough Temperature formula. "
-            + ("Whisk sugar and yeast into the warm water to jumpstart fermentation." if is_freezable else ("If using Active Dry Yeast (ADY), bloom in 50g of warm water for 7 minutes first." if yeast_type == "ADY" else "If using Instant Dry Yeast (IDY), whisk directly into flour or dissolve in the water."))
+            + f"\n2. {yeast_prep}"
             + pan_setup_note
         ),
-        visual_cue="Ingredients accurately weighed on a gram scale; yeast completely dissolved or dispersed." + (" Pan thoroughly coated in olive oil." if is_pan_style else ""),
+        visual_cue="Ingredients accurately weighed on a gram scale; yeast completely dissolved or bloomed in water." + (" Pan thoroughly coated in olive oil." if is_pan_style else ""),
         pro_tip=protip_step_1
     ))
     step += 1
@@ -71,8 +104,59 @@ def generate_proofing_schedule(
     t_knead_end = t_autolyse + timedelta(minutes=20)
     protip_step_2 = (
         "Knead until a complete windowpane is achieved! Developing a strong gluten network before freezing ensures the dough retains its structural elasticity and gas-trapping ability upon thawing."
-        if is_freezable else "Adding oil at the very end of kneading allows gluten bonds to form first, preventing fat from coating flour proteins prematurely."
+        if is_freezable else
+        (
+            "Adding yeast with water at the initial mix jumpstarts enzymatic starch breakdown (fermentolyse), while holding back salt and oil gives gluten chains uninterrupted time to bond. Adding oil at the end prevents fat from coating flour proteins prematurely!"
+            if ingredients.oil_g > 0 else
+            "Adding yeast with water at the initial mix jumpstarts enzymatic activity (fermentolyse), while delaying salt until after hydration ensures maximum yeast vitality and a lighter, airier crust structure."
+        )
     )
+
+    # Step 2 Phase 1: Yeast and Water addition to flour
+    if is_freezable:
+        phase_1 = (
+            f"1. ADD YEAST-WATER TO FLOUR (Autolyse): Pour the warm water with dissolved yeast and sugar into your mixing bowl. "
+            f"Add all {ingredients.flour_g}g flour. Mix with a wooden spoon or spiral dough hook for 1-2 minutes until all dry flour is absorbed into a rough, shaggy mass. "
+            f"Cover and let rest for 15-20 minutes. (This hydration rest allows flour proteins to fully hydrate before kneading)."
+        )
+    elif yeast_type == "ADY":
+        phase_1 = (
+            f"1. ADD YEAST & WATER TO FLOUR (Fermentolyse/Autolyse): Pour the foamy bloomed ADY yeast mixture and remaining calibrated water into your mixing bowl. "
+            f"Add all {ingredients.flour_g}g flour. Mix with a wooden spoon or spiral dough hook for 1-2 minutes until all dry flour is absorbed into a rough, shaggy mass. "
+            f"Cover and let rest for 15-20 minutes to allow flour proteins to fully hydrate."
+        )
+    else:
+        phase_1 = (
+            f"1. ADD YEAST & WATER TO FLOUR (Fermentolyse/Autolyse): Pour the calibrated water with dissolved {yeast_type} yeast into your mixing bowl (or pour calibrated water over flour if yeast was pre-whisked into dry flour). "
+            f"Add all {ingredients.flour_g}g flour. Mix with a wooden spoon or spiral dough hook for 1-2 minutes until all dry flour is absorbed into a rough, shaggy mass. "
+            f"Cover and let rest for 15-20 minutes to allow flour proteins to fully hydrate."
+        )
+
+    # Step 2 Phase 2: Salt (and sugar)
+    if ingredients.sugar_g > 0 and not is_freezable:
+        phase_2 = (
+            f"2. ADD SALT & SUGAR: Sprinkle {ingredients.salt_g}g fine sea salt and {ingredients.sugar_g}g sugar across the rested dough. "
+            f"(Never add salt directly to dry yeast—salt exerts extreme osmotic pressure that damages yeast cells. Introducing salt only after the flour has absorbed the yeast-water protects yeast vitality and strengthens gluten formation)."
+        )
+    else:
+        phase_2 = (
+            f"2. ADD SALT: Sprinkle {ingredients.salt_g}g fine sea salt across the rested dough. "
+            f"(Never add salt directly to dry yeast—salt exerts extreme osmotic pressure that damages yeast cells. Introducing salt only after the flour has absorbed the yeast-water protects yeast vitality and strengthens gluten formation)."
+        )
+
+    # Step 2 Phase 3: Knead and Oil
+    if ingredients.oil_g > 0:
+        phase_3 = (
+            f"3. KNEAD & ADD OIL: Knead by hand on a clean counter or in a stand mixer on medium-low speed for 3-4 minutes until the dough begins pulling together into a cohesive ball. "
+            f"Drizzle in {ingredients.oil_g}g olive oil in two small increments, continuing to knead until fully absorbed. "
+            f"Knead for another 4-5 minutes (total 7-9 minutes hand / 5-6 minutes mixer) until dough is smooth, satiny, elastic, and passes the windowpane test."
+        )
+    else:
+        phase_3 = (
+            f"3. KNEAD: Knead by hand on a clean counter or in a stand mixer on medium-low speed for 7-9 minutes (5-6 minutes mixer) "
+            f"until the dough transitions from shaggy to silky smooth, elastic, and passes the windowpane test."
+        )
+
     milestones.append(ProofingMilestone(
         step_num=step,
         title="Autolyse Rest & Gluten Development (Kneading)",
@@ -81,14 +165,7 @@ def generate_proofing_schedule(
         display_time=dt_str(t_autolyse),
         duration_str="20 mins",
         temp_desc=f"Room Temp ~{room_temp_f}°F",
-        instruction=(
-            "1. Combine flour and water into a rough, shaggy mass. Let rest covered for 15-20 minutes (Autolyse). "
-            "This lets the flour fully hydrate before gluten formation.\n"
-            f"2. Add {ingredients.salt_g}g salt"
-            + (f", {ingredients.sugar_g}g sugar" if ingredients.sugar_g > 0 else "")
-            + (f", and {ingredients.oil_g}g olive oil towards the end of mixing." if ingredients.oil_g > 0 else ".")
-            + "\n3. Knead for 7-9 minutes by hand (or 5-6 mins in stand mixer on medium-low speed) until smooth, elastic, and satiny."
-        ),
+        instruction=f"{phase_1}\n{phase_2}\n{phase_3}",
         visual_cue="The dough transitions from shaggy and sticky to smooth, supple, and satiny. Passes the 'windowpane test' (stretches thin enough to see light through without tearing).",
         pro_tip=protip_step_2
     ))

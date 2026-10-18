@@ -552,6 +552,20 @@ function clientSideCalculate(recipe, params) {
   const isPanStyle = (recipe.id === "adams_detroit" || recipe.id === "detroit" || (recipe.name && recipe.name.toLowerCase().includes("detroit")) || (recipe.name && recipe.name.toLowerCase().includes("pan")));
   const isFreezable = (recipe.id === "adams_freezable" || (recipe.name && recipe.name.toLowerCase().includes("freez")));
 
+  // Yeast Preparation Note for Step 1
+  let yeastPrep = "";
+  if (isFreezable) {
+    yeastPrep = `Calibrate water to ~80-85°F. Whisk ${sugarG.toFixed(1)}g sugar and ${yeastG.toFixed(2)}g ${yeastType} yeast directly into warm water until dissolved to activate and jumpstart hydration.`;
+  } else if (yeastType === "ADY") {
+    yeastPrep = `Calibrate water to ${waterTemp}°F using the DDT formula. Bloom yeast: Take ~50g of calibrated warm water into a small cup, stir in ${yeastG.toFixed(2)}g Active Dry Yeast (ADY)` + (sugarG > 0 ? " with a pinch of sugar" : "") + `, and let sit 7-10 minutes until vigorously foamy before mixing.`;
+  } else if (yeastType === "CY") {
+    yeastPrep = `Calibrate water to ${waterTemp}°F using the DDT formula. Dissolve yeast: Crumble ${yeastG.toFixed(2)}g fresh cake yeast (CY) directly into calibrated water and stir until milky and completely dissolved.`;
+  } else if (yeastType === "SOURDOUGH") {
+    yeastPrep = `Calibrate water to ${waterTemp}°F using the DDT formula. Dissolve starter: Whisk ${yeastG.toFixed(1)}g active sourdough starter directly into calibrated water until aerated and milky.`;
+  } else {
+    yeastPrep = `Calibrate water to ${waterTemp}°F using the DDT formula. Dissolve yeast: Whisk ${yeastG.toFixed(2)}g Instant Dry Yeast (IDY) directly into calibrated water until fully dissolved and dispersed (or whisk thoroughly into dry flour).`;
+  }
+
   // Step 1: Mise en Place
   schedule.push({
     step_num: step++,
@@ -560,28 +574,49 @@ function clientSideCalculate(recipe, params) {
     display_time: formatDate(tStart),
     duration_str: "10-15 mins",
     temp_desc: `Target Water: ${waterTemp}°F`,
-    instruction: isFreezable
-      ? `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, ${sugarG.toFixed(1)}g sugar, ${oilG.toFixed(1)}g EVOO, and ${yeastG.toFixed(2)}g ${yeastType}.\n2. Calibrate water to ~80-85°F. Whisk sugar and yeast into warm water to jumpstart hydration.`
+    instruction: `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, and ${yeastG.toFixed(2)}g ${yeastType} (${formatTeaspoon(yeastTsp)})`
+      + (oilG > 0 ? `, plus ${oilG.toFixed(1)}g extra virgin olive oil.` : ".")
+      + (sugarG > 0 ? ` Also weigh ${sugarG.toFixed(1)}g sugar.` : "")
+      + `\n2. ${yeastPrep}`
+      + (isPanStyle ? "\n3. Coat your Detroit style pan(s) (13x9, 14x10, or 8x10) generously with 1-2 tbsp olive oil across bottom and sides." : ""),
+    visual_cue: isFreezable ? "Yeast and sugar dissolved in warm water; ingredients scaled." : (isPanStyle ? "Ingredients scaled; Detroit pan thoroughly coated in olive oil." : "Ingredients accurately weighed on a gram scale; yeast completely dissolved or bloomed in water."),
+    pro_tip: isFreezable
+      ? "Olive oil protects gluten cell walls against freezing damage; sugar promotes golden browning in 500°F home ovens!"
       : (isPanStyle
-        ? `1. Weigh ${flourG.toFixed(1)}g bread flour, ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g salt, ${yeastG.toFixed(2)}g ${yeastType}, and ${oilG.toFixed(1)}g EVOO.\n2. Calibrate water to ${waterTemp}°F.\n3. Coat your Detroit style pan(s) (13x9, 14x10, or 8x10) generously with 1-2 tbsp olive oil across bottom and sides.`
-        : `1. Weigh ${flourG.toFixed(1)}g flour (${recipe.flour_type}), ${waterG.toFixed(1)}g water, ${saltG.toFixed(1)}g fine sea salt, and ${yeastG.toFixed(2)}g ${yeastType} (${formatTeaspoon(yeastTsp)}).\n2. Bring water to ${waterTemp}°F using the DDT formula.`),
-    visual_cue: isFreezable ? "Yeast and sugar dissolved in warm water; ingredients scaled." : (isPanStyle ? "Ingredients scaled; Detroit pan thoroughly coated in olive oil." : "Ingredients precisely scaled on a digital gram scale."),
-    pro_tip: isFreezable ? "Olive oil protects gluten cell walls against freezing damage; sugar promotes golden browning in 500°F home ovens!" : (isPanStyle ? "Olive oil in the blue steel pan is what fries the bottom crust to golden crispness!" : "Precision gram scales avoid up to 25% volumetric error from cup measuring.")
+        ? "Olive oil in the blue steel pan is what fries the bottom crust to golden crispness! Never pour salt directly onto dry yeast—salt exerts osmotic shock."
+        : "Always use a gram scale! Never pour salt directly onto dry yeast—salt draws moisture out of yeast cells via osmotic shock. Always dissolve yeast into calibrated water or flour before introducing salt.")
   });
 
   // Step 2: Autolyse & Knead
+  let step2Phase1 = "";
+  if (isFreezable) {
+    step2Phase1 = `1. ADD YEAST-WATER TO FLOUR (Autolyse): Pour warm water with dissolved yeast and sugar into mixing bowl. Add all ${flourG.toFixed(1)}g flour. Mix 1-2 mins until a rough shaggy mass forms. Cover and rest 15-20 mins (Autolyse) to hydrate flour proteins.`;
+  } else if (yeastType === "ADY") {
+    step2Phase1 = `1. ADD YEAST & WATER TO FLOUR (Fermentolyse/Autolyse): Pour foamy bloomed ADY yeast mixture and remaining calibrated water into mixing bowl. Add all ${flourG.toFixed(1)}g flour. Mix 1-2 mins until rough shaggy mass forms. Cover and rest 15-20 mins to allow flour proteins to fully hydrate.`;
+  } else {
+    step2Phase1 = `1. ADD YEAST & WATER TO FLOUR (Fermentolyse/Autolyse): Pour calibrated water with dissolved ${yeastType} yeast into mixing bowl (or pour calibrated water over flour if yeast was pre-whisked into dry flour). Add all ${flourG.toFixed(1)}g flour. Mix 1-2 mins until rough shaggy mass forms. Cover and rest 15-20 mins to allow flour proteins to fully hydrate.`;
+  }
+
+  let step2Phase2 = `2. ADD SALT` + (sugarG > 0 && !isFreezable ? ` & SUGAR: Sprinkle ${saltG.toFixed(1)}g fine sea salt and ${sugarG.toFixed(1)}g sugar` : `: Sprinkle ${saltG.toFixed(1)}g fine sea salt`) + ` across rested dough. (Never add salt directly to dry yeast—salt exerts extreme osmotic pressure that damages yeast cells. Adding salt after the hydration rest protects yeast vitality and strengthens gluten formation).`;
+
+  let step2Phase3 = (oilG > 0)
+    ? `3. KNEAD & ADD OIL: Knead by hand or mixer on medium-low for 3-4 mins until dough begins pulling together. Drizzle in ${oilG.toFixed(1)}g olive oil in two small increments, continuing to knead until fully absorbed. Knead another 4-5 mins (total 7-9 mins hand / 5-6 mins mixer) until dough is silky smooth, elastic, and passes the windowpane test.`
+    : `3. KNEAD: Knead by hand on clean counter or mixer on medium-low for 7-9 mins (5-6 mins mixer) until dough transitions from shaggy to silky smooth, elastic, and passes the windowpane test.`;
+
   schedule.push({
     step_num: step++,
-    title: "Autolyse Rest & Gluten Kneading",
+    title: "Autolyse Rest & Gluten Development (Kneading)",
     action_category: "knead",
     display_time: formatDate(tAutolyse),
     duration_str: "20 mins",
     temp_desc: `Room Temp ~${roomTemp}°F`,
-    instruction: isFreezable
-      ? `1. Combine flour and yeast/sugar water. Let rest covered for 15 min (Autolyse).\n2. Add ${saltG.toFixed(1)}g salt and ${oilG.toFixed(1)}g olive oil.\n3. Knead vigorously for 7-9 minutes until smooth, satiny, and passes the windowpane test.`
-      : `1. Mix flour and water into a rough mass; rest 15 min (Autolyse).\n2. Add salt, knead 6-8 mins until satiny and passes windowpane test.`,
-    visual_cue: "Dough becomes silky smooth and stretches translucent without tearing.",
-    pro_tip: isFreezable ? "Developing a full windowpane before freezing is critical so thawed dough has high elasticity and won't tear." : "Autolyse allows flour proteins to hydrate naturally before mechanical stress."
+    instruction: `${step2Phase1}\n${step2Phase2}\n${step2Phase3}`,
+    visual_cue: "The dough transitions from shaggy and sticky to smooth, supple, and satiny. Passes the 'windowpane test' (stretches thin enough to see light through without tearing).",
+    pro_tip: isFreezable
+      ? "Developing a full windowpane before freezing is critical so thawed dough has high elasticity and won't tear."
+      : (oilG > 0
+        ? "Adding yeast with water at the initial mix jumpstarts enzymatic starch breakdown (fermentolyse), while holding back salt and oil gives gluten chains uninterrupted time to bond. Adding oil at the end prevents fat from coating flour proteins prematurely!"
+        : "Adding yeast with water at the initial mix jumpstarts enzymatic activity (fermentolyse), while delaying salt until after hydration ensures maximum yeast vitality and a lighter, airier crust structure.")
   });
 
   let tPreheat = null;

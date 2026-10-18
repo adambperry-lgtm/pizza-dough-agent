@@ -264,6 +264,45 @@ class TestPizzaDoughAgent(unittest.TestCase):
         self.assertAlmostEqual(plan.ingredients.salt_g, 4.0, places=1)
         self.assertAlmostEqual(plan.ingredients.yeast_g, 2.5, places=1)
 
+    def test_yeast_addition_instructions_idy(self):
+        plan = self.agent.create_plan(recipe_id_or_name="neapolitan", yeast_type="IDY")
+        step_1 = plan.schedule[0]
+        step_2 = plan.schedule[1]
+
+        # Step 1 must explain yeast calibration / dissolution
+        self.assertIn("IDY", step_1.instruction)
+        self.assertIn("Dissolve yeast", step_1.instruction)
+
+        # Step 2 must explicitly tell the baker when to add yeast
+        self.assertIn("ADD YEAST & WATER TO FLOUR", step_2.instruction)
+        self.assertIn("ADD SALT", step_2.instruction)
+        self.assertIn("KNEAD", step_2.instruction)
+        self.assertIn("Never add salt directly to dry yeast", step_2.instruction)
+
+    def test_yeast_addition_instructions_ady(self):
+        plan = self.agent.create_plan(recipe_id_or_name="ny_style", yeast_type="ADY")
+        step_1 = plan.schedule[0]
+        step_2 = plan.schedule[1]
+
+        # Step 1 ADY blooming
+        self.assertIn("Bloom yeast", step_1.instruction)
+        self.assertIn("Active Dry Yeast (ADY)", step_1.instruction)
+
+        # Step 2 addition of bloomed ADY
+        self.assertIn("bloomed ADY yeast mixture", step_2.instruction)
+        self.assertIn("ADD SALT & SUGAR", step_2.instruction)
+        self.assertIn("KNEAD & ADD OIL", step_2.instruction)
+
+    def test_yeast_addition_instructions_freezable(self):
+        plan = self.agent.create_plan(recipe_id_or_name="adams_freezable", balls=1, yeast_type="IDY")
+        step_1 = plan.schedule[0]
+        step_2 = plan.schedule[1]
+
+        self.assertIn("Whisk 4.0g sugar and 2.5g IDY yeast directly into the warm water", step_1.instruction)
+        self.assertIn("ADD YEAST-WATER TO FLOUR (Autolyse)", step_2.instruction)
+        self.assertIn("ADD SALT", step_2.instruction)
+        self.assertIn("KNEAD & ADD OIL", step_2.instruction)
+
 
 if __name__ == "__main__":
     unittest.main()
